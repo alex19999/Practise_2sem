@@ -25,6 +25,8 @@ int main() {
         printf("please, give me a symbol to divide\n");
 	fgets(separator, MAX_WORDS, stdin);
 	Split(str_in, separator, tokens, quantity);
+	free(quantity);
+	free(str_in);
 return 0;
 }
 
