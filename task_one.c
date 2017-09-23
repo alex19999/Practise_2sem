@@ -6,8 +6,11 @@
 
 #define MAX_SYM 1000
 #define MAX_WORDS 100
+
+// delimeter или separator ... divider - делитель, а у вас тут разделитель
 #define MAX_DIVIDER 100
 
+// fixit: после запятой нужен пробел здесь и далее
 void Split(char* str_in,char* divider,char** tokens,int* quantity);
 
 int main() {
@@ -23,7 +26,7 @@ int main() {
         printf("please,give me a symbol to divide\n");
 	fgets(divider,MAX_WORDS,stdin);
 	Split(str_in,divider,tokens,quantity);
-
+	// fixit: на каждый вызов calloc должен быть вызов free
 return 0;
 }
 
@@ -40,6 +43,7 @@ void Split(char* str_in,char* divider,char** tokens,int* quantity) {
 	istr =(char*)calloc(MAX_DIVIDER,sizeof(char));
 	char* new_str = str_in;
 	strcat(str_in,divider);
+	// fixit: похоже, что вместо || надо &&
 	if(str_in != NULL || divider != NULL) {
 		for(iter == 0; iter <= strlen(str_in); iter++) {
 			istr = strstr(str_in,divider);
@@ -58,6 +62,8 @@ void Split(char* str_in,char* divider,char** tokens,int* quantity) {
 			}
 		}
         *quantity = counter;
+	// fixit: ф-я должна только находить разбиение строки на слова ... вывод снаружи где-то
+        // в следующем домашнем упражнении надо будет переиспользовать эту ф-ю ... там выводить разбиение на экран не надо
         printf("%d\n",*quantity);
 	}
 }
