@@ -13,10 +13,8 @@ void Split(char* str_in, char* separator, char** tokens, int* quantity) {
         int iter = 0;
         char* istr;
         int length_of_token = 0;
-        tokens = (char**)calloc(MAX_WORDS, sizeof(char*));
-        str_in[strlen(str_in) - 1] = 0;
-        separator[strlen(separator) - 1] = 0;
-        char* new_str = str_in;
+        char* new_str;
+	new_str = str_in;
         strcat(str_in, separator);
         if(str_in != NULL && separator != NULL) {
                 for(iter == 0; iter <= strlen(str_in); iter++) {
@@ -32,10 +30,8 @@ void Split(char* str_in, char* separator, char** tokens, int* quantity) {
                                 str_in = istr + strlen(separator);
 
                         }
-		free(tokens[counter]);
 		counter++;
                 }
         *quantity = counter;
         }
-	free(tokens);
 }

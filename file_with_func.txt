@@ -1,2 +1,5 @@
-ls -al 
+ls
 date
+ls -al
+cowsay zdarova
+echo privet

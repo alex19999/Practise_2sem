@@ -18,13 +18,19 @@ int main() {
 	int* quantity;
 	char** tokens;
 	char* separator;
+	tokens = (char**)calloc(MAX_WORDS, sizeof(char*));
+	separator = (char*)calloc(MAX_SEP, sizeof(char));
 	quantity = (int*)calloc(MAX_WORDS, sizeof(int));
         str_in = (char*)calloc(MAX_SYM, sizeof(char));
 	printf("please, give me a string to divide it into tokens\n");
 	fgets(str_in, MAX_SYM, stdin);
+	str_in[strlen(str_in) - 1] = 0;
         printf("please, give me a symbol to divide\n");
 	fgets(separator, MAX_WORDS, stdin);
+	separator[strlen(separator) - 1] = 0;
 	Split(str_in, separator, tokens, quantity);
+	free(tokens);
+	free(separator);
 	free(quantity);
 	free(str_in);
 return 0;
@@ -36,9 +42,6 @@ void Split(char* str_in, char* separator, char** tokens, int* quantity) {
         int iter = 0;
         char* istr;
         int length_of_token = 0;
-        tokens = (char**)calloc(MAX_WORDS, sizeof(char*));
-        str_in[strlen(str_in) - 1] = 0;
-        separator[strlen(separator) - 1] = 0;
         char* new_str = str_in;
         strcat(str_in, separator);
         if(str_in != NULL && separator != NULL) {
@@ -55,11 +58,9 @@ void Split(char* str_in, char* separator, char** tokens, int* quantity) {
                                 str_in = istr + strlen(separator);
 
                         }
-		free(tokens[counter]);
 		counter++;
                 }
         *quantity = counter;
         }
-	free(tokens);
 }
 

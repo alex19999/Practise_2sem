@@ -1,4 +1,5 @@
 all: task_two
+
 split.o: split.c
 	gcc -c -o split.o split.c
 
