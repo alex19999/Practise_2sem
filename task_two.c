@@ -17,6 +17,8 @@ void help_execvp(FILE* f_in) {
 	char* string_of_comands;
 	char** tokens;
 	int* quantity;
+	int time_delay = 0;
+	int offset = 0;
 	tokens = (char**)calloc(1, sizeof(char*));
 	quantity = (int*)calloc(MAX_ARG, sizeof(int));
 	while(!feof(f_in)){
@@ -24,10 +26,23 @@ void help_execvp(FILE* f_in) {
 		fgets(string_of_comands, MAX_SYM_STR, f_in);
 		string_of_comands[strlen(string_of_comands) - 1] = 0;
 		Split(string_of_comands, separator, tokens, quantity);
-		func_name = tokens[0];
+		time_delay = atoi(tokens[0]);
 		pid = fork();
 		if(pid == 0) {
-			execvp(func_name, tokens);
+		if(time_delay != 0) {
+			func_name = tokens[1];
+			offset = 1;
+		} else {
+			func_name = tokens[0];
+			offset = 0;
+			}
+		//pid = fork();
+		//if(pid == 0) {
+			printf("delay = %d\n",time_delay);
+			printf("offset = %d\n",offset);
+			printf("func = %s\n",func_name);
+			sleep(time_delay);
+			execvp(func_name, tokens + offset);
 			exit(0);
 		}
 		free(string_of_comands);

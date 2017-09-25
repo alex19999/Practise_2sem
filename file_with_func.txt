@@ -1,5 +1,5 @@
 ls
-date
+1 date
 ls -al
-cowsay zdarova
+2 cowsay zdarova
 echo privet
