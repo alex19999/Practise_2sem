@@ -3,10 +3,14 @@
 #include<string.h>
 #include<malloc.h>
 #include<unistd.h>
+#include"split.h"
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #define MAX_SYM_STR 100
 #define MAX_ARG 10
 #define MAX_SYM 10
+#define MAX_OPER 25
 
 
 
@@ -19,7 +23,9 @@ void help_execvp(FILE* f_in) {
 	int* quantity;
 	int time_delay = 0;
 	int offset = 0;
-	tokens = (char**)calloc(1, sizeof(char*));
+	int* status;
+	int i = 0;
+	tokens = (char**)calloc(MAX_OPER, sizeof(char*));
 	quantity = (int*)calloc(MAX_ARG, sizeof(int));
 	while(!feof(f_in)){
 		string_of_comands = (char*)calloc(MAX_SYM_STR, sizeof(char));	
@@ -27,8 +33,6 @@ void help_execvp(FILE* f_in) {
 		string_of_comands[strlen(string_of_comands) - 1] = 0;
 		Split(string_of_comands, separator, tokens, quantity);
 		time_delay = atoi(tokens[0]);
-		pid = fork();
-		if(pid == 0) {
 		if(time_delay != 0) {
 			func_name = tokens[1];
 			offset = 1;
@@ -36,22 +40,18 @@ void help_execvp(FILE* f_in) {
 			func_name = tokens[0];
 			offset = 0;
 			}
-		//pid = fork();
-		//if(pid == 0) {
-			printf("delay = %d\n",time_delay);
-			printf("offset = %d\n",offset);
-			printf("func = %s\n",func_name);
+		pid = fork();
+		if(pid == 0) {
 			sleep(time_delay);
 			execvp(func_name, tokens + offset);
 			exit(0);
-		}
+		} else wait(status);
 		free(string_of_comands);
 	}
 	free(tokens);
 
 }
 		
-
 int main(int argc, char** argv) {
 	FILE* f_in = fopen("file_with_func.txt", "r");
 	switch(argc - 1) {
