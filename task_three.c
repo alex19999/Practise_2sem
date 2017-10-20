@@ -13,7 +13,7 @@ int main() {
         pid_t pid;
         printf("give the amount of processes\n");
         scanf("%d", &N);
-        for(iter == 0; iter <= N; iter++) {
+        for(iter = 0; iter <N; iter++) {
                 pid = fork();
                 if(pid == 0) {
                         printf("id of current process = %d\n", getpid());
