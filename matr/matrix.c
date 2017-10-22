@@ -13,7 +13,7 @@ void* thread_func(void* thread_data) {
     int j = 0;
     int k = 0;
     float sum = 0;
-	for(i = 0; i < data->str_size; i++) {
+	for(i = data->num_of_thread ; i < data->str_size; i = i + data->count_of_thread) {
         for(k = 0; k < data->str_size; k++) {
 		    for( j = 0; j < data->str_size; j++) {
 		        sum = sum + data->matrix_a[i][j] * data->matrix_b[j][k];

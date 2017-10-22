@@ -1,0 +1,8 @@
+threads = 1   time = 19.963
+threads = 2   time = 12.558
+threads = 3   time = 10.616
+threads = 4   time = 10.300
+threads = 5   time = 10.535
+threads = 6   time = 7.987
+threads = 7   time = 7.100
+threads = 8   time = 6.900

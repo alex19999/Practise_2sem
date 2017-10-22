@@ -12,6 +12,8 @@
 typedef struct data {
 	int str_num; // номер текущей строки //
 	int str_size; // размер  строки //
+    int num_of_thread;
+    int count_of_thread;
 	float** matrix_a;
 	float** matrix_b; // матрицы //
 	float** res;
