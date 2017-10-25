@@ -3,9 +3,6 @@
 #include<unistd.h>
 #include<sys/types.h>
 #include<sys/wait.h>
-
-// fixit: удаляйте лишние пустые строки
-
 int main() {
         int N = 0;
         int iter = 0;

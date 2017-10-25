@@ -12,15 +12,8 @@
 #define MAX_SYM 10
 #define MAX_OPER 25
 
-// fixit: лишние пробелы
+// Считываем команды из файла, разделяем их, получаем список команд и запихиваем его в функцию execvp //
 
-/*
-ф-и надо называть так (и в целом разбивать на ф-и), что не смотря в тело ф-и
-было ясно, что она делает. 
-иногда чтобы не писать слишком длинное название, для ясности добавляют комментарий.
-
-из названия "помочь системному вызовы execvp" мало что понятно
-*/
 void help_execvp(FILE* f_in) {
 	pid_t pid;
 	char* func_name;
@@ -48,16 +41,13 @@ void help_execvp(FILE* f_in) {
 			offset = 0;
 			}
 		pid = fork();
-		/*
-		fixit:
-		сейчас код написан так, что если у вас i-я задача работает очень долго,
-		то вы пропустите момент запуска i+1-й
-		*/
 		if(pid == 0) {
-			sleep(time_delay);
 			execvp(func_name, tokens + offset);
 			exit(0);
-		} else wait(status);
+		} else {
+            sleep(time_delay);
+            wait(status);
+        }
 		free(string_of_comands);
 	}
 	free(tokens);
@@ -65,23 +55,7 @@ void help_execvp(FILE* f_in) {
 }
 		
 int main(int argc, char** argv) {
-	/*
-	fixit: название файла со списком задач как раз из аргументов командной строки и 
-	надо было получить
-	*/
-	FILE* f_in = fopen("file_with_func.txt", "r");
-	switch(argc - 1) {
-		case 1 :
-			/*
-			fixit: что это за махинации с argv[1]?
-			причем после них вы argv[1] и не используете ...
-			*/
-			argv[1] = "file_with_func.txt";
-			break;
-		default :
-			printf("There are a bad number of arguments\n");
-			break;
-	}
+	FILE* f_in = fopen(argv[1], "r");
 	help_execvp(f_in);
 return 0;
 }

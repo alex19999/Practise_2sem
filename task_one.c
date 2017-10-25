@@ -7,7 +7,6 @@
 #define MAX_SYM 1000
 #define MAX_WORDS 100
 #define MAX_SEP 100
-
 int main() {
 	char* str_in;
 	int cnt = 0;	
@@ -31,7 +30,6 @@ int main() {
 	free(str_in);
 return 0;
 }
-
 
 void Split(char* str_in, char* separator, char** tokens, int* quantity) {
         int counter = 0;
