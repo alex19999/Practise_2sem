@@ -10,6 +10,9 @@
 
 void Split(char* str_in, char* separator, char** tokens, int* quantity);
 
+/*
+удаляйте лишние пустые строки
+*/
 
 
 int main() {
@@ -29,7 +32,14 @@ int main() {
 	fgets(separator, MAX_WORDS, stdin);
 	separator[strlen(separator) - 1] = 0;
 	Split(str_in, separator, tokens, quantity);
+	/*
+	fixit: "пожалуйста, введите ...", а никакой результат работы не выводится
+	*/
 	free(tokens);
+	/*
+	fixit: число вызовов calloc должно совпадать с числом вывозов free,
+	иначе это утечка памяти
+	*/
 	free(separator);
 	free(quantity);
 	free(str_in);
