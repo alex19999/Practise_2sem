@@ -7,6 +7,12 @@
 #include <fcntl.h>
 #include <pthread.h>
 
+/*
+fixit:
+Т.к. это упражнение перешло в домашнее, его надо сделать нормально:
+1) название переменных, из которых ясно, что в них хранится
+2) убрать дублирование кода (запуск клиента 1 очень схож с запуском 2го).
+*/
 
 #define MAX_SYM 1000
 
@@ -16,6 +22,11 @@ void* func_write(void* fd_1){
         input = (char*)calloc(MAX_SYM, sizeof(char));
                     while (1) {
                         fgets(input, MAX_SYM*sizeof(char), stdin);
+                        /*
+                        Можете пояснить зачем нужна строчка
+                        if(strlen(input)<1) sleep(0.1);
+                        ?
+                        */
                         if(strlen(input)<1) sleep(0.1);
                         else {
                             printf("Write\n");
@@ -26,7 +37,7 @@ void* func_write(void* fd_1){
 
 void* func_read(void* fd_2){
         int fd = *((int*)fd_2);
-        int status = 0;
+        int status = 0; // fixit: у вас переменная status фактически означает число прочитанных байт ... может так и назвать?
         char *output;
         output = (char*)calloc(MAX_SYM, sizeof(char));
         do {
@@ -38,6 +49,9 @@ void* func_read(void* fd_2){
 }
 
 int main(int argc, char **argv){
+        /*
+        fixit: дублирующийся код с точностью до замены суффикса переменных _1 на _2
+        */
         int fd_1;
         int fd_2;
         int status_1;
