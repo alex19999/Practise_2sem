@@ -1,0 +1,6 @@
+spoon:1
+plate:4
+fork:2
+deep spoon:5
+scoop:3
+knife:2
