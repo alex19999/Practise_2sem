@@ -46,6 +46,11 @@ void* func_wash(void* fd_1){
     }
     while(!feof(f_one));
     num_of_washed_dishes = -1;
+    free(tokens_dirty_dish);
+    free(tokens_dish_washtime);
+    free(time_for_washing);
+    free(dirty_dish);
+    free(quantity);
     fclose(f_one);
     fclose(f_two);
 }
@@ -81,5 +86,9 @@ void* func_wipe(void* fd_2){
         rewind(f);
         }
     while(num_of_bytes > 0);
+    free(dish_for_wiping);
+    free(time_for_wiping);
+    free(tokens_dish_wipetime);
+    free(quantity);
     fclose(f);
 }

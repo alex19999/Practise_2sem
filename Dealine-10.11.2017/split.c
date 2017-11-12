@@ -30,8 +30,7 @@ void Split(char* str_in, char* separator, char** tokens, int* quantity) {
                                 str_in = istr + strlen(separator);
 
                         }
-
-		counter++;
+        counter++;
                 }
         *quantity = counter;
         }
