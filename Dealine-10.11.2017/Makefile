@@ -1,10 +1,10 @@
-all: wash_and_dry
+all: main
 
 split.o: split.c
 	gcc -c -o split.o split.c
 
-wash_and_dry.o: wash_and_dry.c
-	gcc -c -o wash_and_dry.o wash_and_dry.c
+wash_wipe.o: wash_wipe.c
+	gcc -c -o wash_wipe.o wash_wipe.c
 
-wash_and_dry: split.o wash_and_dry.o 
-	gcc -o wash_and_dry split.o wash_and_dry.o -lpthread
+main: split.o wash_wipe.o main.o 
+	gcc -o main split.o wash_wipe.o main.o -lpthread

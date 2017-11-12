@@ -1,3 +1,5 @@
-plate:1
+plate:2
 fork:1
-spoon:1
+spoon:5
+fork:4
+scoop:1
