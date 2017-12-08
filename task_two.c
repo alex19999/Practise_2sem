@@ -21,20 +21,21 @@ void help_execvp(FILE* f_in) {
 	char* string_of_comands;
 	char** tokens;
 	int* quantity;
-	int time_delay = 0;
+	int* time_delay;
 	int offset = 0;
 	int* status;
-    int func_counter = 0;
+    int counter = 0;
 	int i = 0;
 	tokens = (char**)calloc(MAX_OPER, sizeof(char*));
+    time_delay = (int*)calloc(MAX_OPER, sizeof(int));
 	quantity = (int*)calloc(MAX_ARG, sizeof(int));
 	while(!feof(f_in)){
 		string_of_comands = (char*)calloc(MAX_SYM_STR, sizeof(char));	
 		fgets(string_of_comands, MAX_SYM_STR, f_in);
 		string_of_comands[strlen(string_of_comands) - 1] = 0;
 		Split(string_of_comands, separator, tokens, quantity);
-		time_delay = atoi(tokens[0]);
-		if(time_delay != 0) {
+		time_delay[counter] = atoi(tokens[0]);
+		if(time_delay[counter] != 0) {
 			func_name = tokens[1];
 			offset = 1;
 		} else {
@@ -43,15 +44,15 @@ void help_execvp(FILE* f_in) {
 		}
 		pid = fork();
 		if(pid == 0) {
-            if(func_counter == 0) sleep(time_delay);
+            sleep(time_delay[counter]);
 			execvp(func_name, tokens + offset);
 			exit(0);
 		} else {
-            sleep(time_delay);
+            sleep(time_delay[counter]);
             wait(status);
         }
 		free(string_of_comands);
-        func_counter++;
+        counter++;
 	}
 	free(tokens);
 
