@@ -13,14 +13,14 @@ void* func_write(void* fd_1) {
         int fd = *((int*)fd_1);
         char *input;
         input = (char*)calloc(MAX_SYM, sizeof(char));
-                    while (1) {
-                        fgets(input, MAX_SYM*sizeof(char), stdin);
-                        if(strlen(input) < 1) continue;
-                        else {
-                            printf("Write\n");
-                            write(fd, input, MAX_SYM*sizeof(char));
-                        }
-                    }
+        while (1) {
+            fgets(input, MAX_SYM*sizeof(char), stdin);
+            if(strlen(input) < 1) continue;
+                else {
+                    printf("Write\n");
+                    write(fd, input, MAX_SYM*sizeof(char));
+                }
+        }
 }
 
 void* func_read(void* fd_2){
@@ -55,17 +55,17 @@ int main(int argc, char **argv) {
         if (mknod(filename_1, S_IFIFO | 0666, 0) < 0) {
             exit(-1);
         }
-        if(access(filename_2, F_OK)==-1)
+        if(access(filename_2, F_OK) == -1)
         if (mknod(filename_2, S_IFIFO | 0666, 0) < 0) {
             exit(-1);
         }
         if (first_term != second_term) {
             if(first_term > second_term) {
-                fd_1= open(filename_1, O_WRONLY);
+                fd_1 = open(filename_1, O_WRONLY);
                 fd_2 = open(filename_2, O_RDONLY);
             } else {
                 fd_2 = open(filename_1, O_RDONLY);
-                fd_1= open(filename_2, O_WRONLY);
+                fd_1 = open(filename_2, O_WRONLY);
             }
         } else {
             printf("Use different tetminals to chat\n");

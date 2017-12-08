@@ -1,5 +1,1 @@
-1 date
-1 ls -al
-2 cowsay watafak
-17 ls -al
 5 echo privet

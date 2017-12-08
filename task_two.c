@@ -39,7 +39,7 @@ void help_execvp(FILE* f_in) {
 		} else {
 			func_name = tokens[0];
 			offset = 0;
-			}
+		}
 		pid = fork();
 		if(pid == 0) {
 			execvp(func_name, tokens + offset);
