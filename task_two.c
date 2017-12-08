@@ -24,6 +24,7 @@ void help_execvp(FILE* f_in) {
 	int* time_delay;
 	int offset = 0;
 	int* status;
+    int iter = 0;
     int counter = 0;
 	int i = 0;
 	tokens = (char**)calloc(MAX_OPER, sizeof(char*));
@@ -35,21 +36,18 @@ void help_execvp(FILE* f_in) {
 		string_of_comands[strlen(string_of_comands) - 1] = 0;
 		Split(string_of_comands, separator, tokens, quantity);
 		time_delay[counter] = atoi(tokens[0]);
-		if(time_delay[counter] != 0) {
-			func_name = tokens[1];
-			offset = 1;
-		} else {
-			func_name = tokens[0];
-			offset = 0;
-		}
+		func_name = tokens[1];
+		offset = 1;
 		pid = fork();
 		if(pid == 0) {
             sleep(time_delay[counter]);
 			execvp(func_name, tokens + offset);
 			exit(0);
 		} else {
-            sleep(time_delay[counter]);
             wait(status);
+        }
+        for(iter = 0; iter < MAX_OPER; iter++) {
+            if(tokens[iter] != NULL); free(tokens[iter]);
         }
 		free(string_of_comands);
         counter++;
