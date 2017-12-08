@@ -245,12 +245,12 @@ void main() {
                                     num_of_bytes = my_write(newsockfd, "Victory", MAX_SYM, newsockfd, sockfd);
                                     break;
                                 }
-                                n = my_write(newsockfd, "Hitting", MAX_SYM, newsockfd, sockfd);
+                                num_of_bytes = my_write(newsockfd, "Hitting", MAX_SYM, newsockfd, sockfd);
                             } else {
-                                n = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
+                                num_of_bytes = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
                             }
                         } else {
-                            n = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
+                            num_of_bytes = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
                         }
                         len_of_mess_to = my_write(user_fd_1[1], "shoot", MAX_SYM, newsockfd, sockfd);
                         while((len_of_mess_into = read(user_fd_2[0], message, MAX_SYM)) < 0) sleep(0.1);
@@ -301,18 +301,26 @@ void main() {
                         Split(line, delimeter, tokens, quantity);
                         the_num_of_str = atoi(tokens[0]);
                         the_num_of_col = atoi(tokens[1]);
-                        result = hit_or_miss(the_num_of_str, the_num_of_col, f1);
-                        if(result == 1){
-                            the_num_of_dead_2++;
-                            if(the_num_of_dead_2 == units) { 
-                                len_of_mess_to = my_write(user_fd_2[1], "end", MAX_SYM, newsockfd, sockfd);
-                                num_of_bytes = my_write(newsockfd, "Victory", MAX_SYM, newsockfd, sockfd);
-                                break;
-                            }
-                            num_of_bytes = my_write(newsockfd, "Hitting", MAX_SYM, newsockfd, sockfd);
-                        } else {
-                            num_of_bytes = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
-                        }
+			            res = check(the_num_of_str, the_num_of_col, arr_str, arr_col, length);
+                        arr_col[length] = the_num_of_col;
+                        arr_str[length] = the_num_of_str;
+                        length++;
+			            if(res == 1) {
+                        	result = hit_or_miss(the_num_of_str, the_num_of_col, f1);
+                        	if(result == 1){
+                            	the_num_of_dead_2++;
+                            	if(the_num_of_dead_2 == units) { 
+                                	len_of_mess_to = my_write(user_fd_2[1], "end", MAX_SYM, newsockfd, sockfd);
+                                	num_of_bytes = my_write(newsockfd, "Victory", MAX_SYM, newsockfd, sockfd);
+                                	break;
+                            	}
+                            	num_of_bytes = my_write(newsockfd, "Hitting", MAX_SYM, newsockfd, sockfd);
+                        	} else {
+                            	num_of_bytes = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
+                        	}
+			            } else {
+				            num_of_bytes = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
+			            }
                         len_of_mess_to = my_write(user_fd_2[1], "shoot", MAX_SYM, newsockfd, sockfd);
                     }
                     break;
