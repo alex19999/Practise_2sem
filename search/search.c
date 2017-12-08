@@ -9,10 +9,9 @@
 #define MAX_SIZE 100
 
 
-
+int counter = 0;
 
 void search(const char *string, int deep, const char *file) {
-    int counter = 0;
 	DIR * papka;
 	struct dirent *enter;
 	counter++;
@@ -41,7 +40,7 @@ void search(const char *string, int deep, const char *file) {
     counter--;
 }
 
-
+//give directory, deep and needed file
 int main(int argc, char** argv) {
 	if(argc != 4) {
 		printf("Usage: %s directory search_of_depth name\n", argv[0]);

@@ -24,6 +24,7 @@ void help_execvp(FILE* f_in) {
 	int time_delay = 0;
 	int offset = 0;
 	int* status;
+    int func_counter = 0;
 	int i = 0;
 	tokens = (char**)calloc(MAX_OPER, sizeof(char*));
 	quantity = (int*)calloc(MAX_ARG, sizeof(int));
@@ -42,7 +43,7 @@ void help_execvp(FILE* f_in) {
 		}
 		pid = fork();
 		if(pid == 0) {
-            sleep(time_delay);
+            if(func_counter == 0) sleep(time_delay);
 			execvp(func_name, tokens + offset);
 			exit(0);
 		} else {
@@ -50,6 +51,7 @@ void help_execvp(FILE* f_in) {
             wait(status);
         }
 		free(string_of_comands);
+        func_counter++;
 	}
 	free(tokens);
 
