@@ -42,6 +42,7 @@ void help_execvp(FILE* f_in) {
 		}
 		pid = fork();
 		if(pid == 0) {
+            sleep(time_delay);
 			execvp(func_name, tokens + offset);
 			exit(0);
 		} else {
