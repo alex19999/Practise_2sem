@@ -7,50 +7,81 @@
 #include <string.h>
 
 #define MAX_SIZE 100
+#define MAX_SYM 10
+
+void decrease(char* string) {
+    int len = 0;
+	if(string == NULL) return;
+	len = strlen(string);
+    while(len != 0 && string [len] != '/') {
+        string [len] = '\0';
+        len--;
+    }
+    if(len == 0) return;
+    string[len] = 0;
+	return;
+}
+
+char* increase(char* string, char* extra_dir) {
+    char* new_dir;
+    new_dir = (char*)calloc(MAX_SIZE, sizeof(char));
+	strcpy(new_dir, string);
+	strcat(new_dir, "/");
+	strcat(new_dir, extra_dir);
+	return new_dir;
+}
 
 
-int counter = 0;
-
-void search(const char *string, int deep, const char *file) {
-	DIR * papka;
+int search(char *string, int deep, const char *file) {
+	DIR* dir;
+    char* new_dir;
 	struct dirent *enter;
-	counter++;
+    int result;
+    int deep_ = deep;
+    new_dir = (char*)calloc(MAX_SIZE, sizeof(char));
+    if(deep < 0) return -1;
 	printf("Find %s in directory %s\n", file, string);
-	if(counter <= deep) { 
-		if((papka = opendir(string)) == NULL) {
-			perror("Can't opendir");
-			exit(1);
-		}
-		while((enter = readdir(papka)) != NULL) {
-			printf("%ld - %s [%d] %d\n", enter->d_ino, enter->d_name, enter->d_type, enter->d_reclen);
-			if(!strcmp(enter->d_name, file)) {
-				printf("I found  %s in directory %s\n", file, string);
-				exit(EXIT_SUCCESS);    
-			}
-			if (enter->d_type == 4) {
-				char new_dir[MAX_SIZE];
-				strcpy(new_dir, string);
-				strcat(new_dir, "/");
-				strcat(new_dir, enter->d_name); 
-				search(new_dir, deep, file);
-			}
-		}
-		closedir(papka);
+	if((dir = opendir(string)) == NULL) {
+		perror("Can't open directory");
+		exit(1);
 	}
-    counter--;
+	while((enter = readdir(dir)) != NULL) {
+		if(!strcmp(enter->d_name, file)) {
+            return 1;
+        }
+    }
+    rewinddir(dir);
+    while((enter = readdir(dir)) != NULL) {
+		if(enter->d_type == 4 && strncmp(".", enter -> d_name, 1) && strncmp("..", enter -> d_name, 2)) {
+		    new_dir = increase(string, enter->d_name);
+            result = search(new_dir, deep - 1, file);
+            if(result == 1) return 1;
+            else if(result == -1) 
+            	decrease(string);
+            else return 0;
+            }
+	}
+    free(new_dir);
+    return -1;
 }
 
 //give directory, deep and needed file
+
 int main(int argc, char** argv) {
-	if(argc != 4) {
-		printf("Usage: %s directory search_of_depth name\n", argv[0]);
-		exit(1); 
-	}
-	int deep = atoi(argv[2]);
-	char directory[MAX_SIZE];
-	char file[MAX_SIZE];
-	strcpy(directory, argv[1]);
-	strcpy(file, argv[3]);
-	search(directory, deep, file);
-	return 0;
+    if(argc - 1 == 3) { 
+	        int deep = atoi(argv[2]);
+	        char* directory;
+	        char* file;
+            int res = 0; 
+            directory = (char*)calloc(MAX_SIZE, sizeof(char));
+            file = (char*)calloc(MAX_SIZE, sizeof(char));
+            strcpy(directory, argv[1]);
+            strcpy(file, argv[3]);
+            res = search(directory, deep, file);
+            printf("res = %d\n", res);
+            free(directory);
+            free(file);
+    } else {
+            printf("Incorect number of arguments\n");
+    }
 }
