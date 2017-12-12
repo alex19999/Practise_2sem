@@ -14,6 +14,10 @@
 
 
 int search(char* string, int depth, const char* file);
+
+/*
+не особо ясные названия ф-й: возможно, changeToParentDir, append яснее выражают ваши намерения
+*/
 void decrease(char* string);
 char* increase(char* string, char* extra_dir);
 
