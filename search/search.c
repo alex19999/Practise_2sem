@@ -1,15 +1,6 @@
-#include <sys/types.h>
-#include <dirent.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/stat.h> 
-#include <string.h>
+#include "search.h"
 
-#define MAX_SIZE 100
-#define MAX_SYM 10
-
-void decrease(char* string) {
+void decrease(char* string) { //decreases our string-path
     int len = 0;
 	if(string == NULL) return;
 	len = strlen(string);
@@ -22,7 +13,7 @@ void decrease(char* string) {
 	return;
 }
 
-char* increase(char* string, char* extra_dir) {
+char* increase(char* string, char* extra_dir) { //increases our string-path
     char* new_dir;
     new_dir = (char*)calloc(MAX_SIZE, sizeof(char));
 	strcpy(new_dir, string);
@@ -37,10 +28,10 @@ int search(char *string, int deep, const char *file) {
     char* new_dir;
 	struct dirent *enter;
     int result;
-    int deep_ = deep;
     new_dir = (char*)calloc(MAX_SIZE, sizeof(char));
-    if(deep < 0) return -1;
-	printf("Find %s in directory %s\n", file, string);
+    if(deep < 0) {
+        return -1;
+    }
 	if((dir = opendir(string)) == NULL) {
 		perror("Can't open directory");
 		exit(1);
@@ -55,13 +46,17 @@ int search(char *string, int deep, const char *file) {
 		if(enter->d_type == 4 && strncmp(".", enter -> d_name, 1) && strncmp("..", enter -> d_name, 2)) {
 		    new_dir = increase(string, enter->d_name);
             result = search(new_dir, deep - 1, file);
-            if(result == 1) return 1;
-            else if(result == -1) 
-            	decrease(string);
-            else return 0;
+            if(result == 1) { 
+                printf("File %s was founded in %s directory\n", file, new_dir);
+                return 1;
+            }  
+            if(result == -1) {
+                decrease(string);
             }
-	}
+        }
+    }
     free(new_dir);
+    printf("File was not founded\n");
     return -1;
 }
 
@@ -77,8 +72,7 @@ int main(int argc, char** argv) {
             file = (char*)calloc(MAX_SIZE, sizeof(char));
             strcpy(directory, argv[1]);
             strcpy(file, argv[3]);
-            res = search(directory, deep, file);
-            printf("res = %d\n", res);
+            search(directory, deep, file);
             free(directory);
             free(file);
     } else {
