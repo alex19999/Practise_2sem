@@ -1,23 +1,7 @@
-#include<sys/types.h>
-#include<sys/socket.h>
-#include<netinet/in.h>
-#include<arpa/inet.h>
-#include<string.h>
-#include<stdio.h>
-#include<errno.h>
-#include<unistd.h>
-#include<stdlib.h>
-#include"split.h"
-
-#define MAX_SYM 10
-#define MAX_HIT 20
-#define MAX_SHOOTS 100
-#define MAP_SIZE 10
-
+#include"client.h"
 void show_previous_strikes(int* str, int* col, char** results, int length) {
-    int counter = length;
     while(length >= 0) {
-        printf("coordinates(%d, %d), result:%s\n", str[length], col[length], results[counter--]);
+        printf("coordinates(%d, %d), result:%s\n", str[length], col[length], results[length]);
         length--;
     }
 }
@@ -41,10 +25,10 @@ void main(int argc, char** argv) {
     col_shoots = (int*)calloc(MAX_SHOOTS, sizeof(int));
     tokens = (char**)calloc(2, sizeof(char*));
     my_shoots = (char**)calloc(MAX_SHOOTS, sizeof(char*));
-    for(j = 0; j++; j < 2) {
+    for(j = 0; j < 2; j++) {
         tokens[j] = (char*)calloc(MAX_SYM, sizeof(char));
     }
-    for(j = 0; j++; j < MAX_SHOOTS) {
+    for(j = 0; j < MAX_SHOOTS; j++) {
         my_shoots[j] = (char*)calloc(MAX_SYM, sizeof(char));
     }
     sendline = (char*)calloc(MAX_SYM, sizeof(char));
@@ -62,7 +46,7 @@ void main(int argc, char** argv) {
     }
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(51277);
+    servaddr.sin_port = htons(51360);
     if(inet_aton(argv[1], &servaddr.sin_addr) == 0) {
         printf("Invalid IP address\n");
         exit(1);
@@ -83,7 +67,7 @@ void main(int argc, char** argv) {
         fgets(sendline, 1000, stdin);
         fflush(stdin);
         if((n = write(sockfd, sendline, strlen(sendline) + 1)) < 0) {
-            perror("Can't right");
+            perror("Can't write");
             close(sockfd);
             exit(1);
         }
@@ -95,22 +79,21 @@ void main(int argc, char** argv) {
     while(1) {
         printf("Give me coordinates\n");
         fflush(stdin);
-        fgets(sendline, 1000, stdin);
+        fgets(sendline, MAX_SYM, stdin);
         Split(sendline, delimeter, tokens, quantity);
         str_shoots[length] = atoi(tokens[0]);
         col_shoots[length] = atoi(tokens[1]);
         n = write(sockfd, sendline, strlen(sendline));
-        if(( n = read(sockfd, recvline, 999)) < 0) {
-            perror(NULL);
+        if(( n = read(sockfd, recvline, MAX_SYM)) < 0) {
+            perror("Problem");
             close(sockfd);
             exit(1);
         }
-        my_shoots[length] = recvline;
-        printf("my_shoots[length] = %s\n", my_shoots[length]);
+        strcpy(my_shoots[length], recvline);
         show_previous_strikes(str_shoots, col_shoots, my_shoots, length);
         length++;
         printf("\n*result* = %s\n", recvline);
-        if(strcmp(recvline, "Lose") == 0) { 
+        if(strcmp(recvline, "Lose Game") == 0) {
             printf("result:%s\n", recvline);
             break;
         }
@@ -120,12 +103,12 @@ void main(int argc, char** argv) {
         }
     } 
     printf("Game Over\n");
-    //free(quantity);
-    //free(tokens);
-    //free(sendline);
-    //free(recvline);
-    //free(my_shoots);
-    //free(str_shoots);
-    //free(col_shoots);
+    if(quantity != NULL) free(quantity);
+    if(tokens != NULL) free(tokens);
+    if(sendline != NULL) free(sendline);
+    if(recvline != NULL) free(recvline);
+    if(my_shoots != NULL) free(my_shoots);
+    if(str_shoots != NULL) free(str_shoots);
+    if(col_shoots != NULL) free(col_shoots);
     close(sockfd);
 }

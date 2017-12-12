@@ -1,24 +1,8 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<sys/types.h>
-#include<netinet/in.h>
-#include<arpa/inet.h>
-#include<string.h>
-#include<errno.h>
-#include<unistd.h>
-#include<sys/socket.h>
-#include<sys/stat.h>
-#include<fcntl.h>
-#include"split.h"
-#include<ctype.h>
+#include"server.h"
 
-#define MAX_SYM 100
-#define CORRECT_NUM_OF_BRICKS 100
-#define MAP_SIZE 100
-
-int my_write(int descriptor, char* message, int length,int newsockfd, int sockfd) {
+int my_write(int descriptor, char* message, int newsockfd, int sockfd) {
     int num_of_bytes;
-    if((num_of_bytes = write(descriptor, message, length)) < 0) {
+    if((num_of_bytes = write(descriptor, message, strlen(message))) < 0) {
         perror("Can't write");
         close(sockfd);
         close(newsockfd);
@@ -36,6 +20,23 @@ int my_read(int descriptor, char* destiny, int max_length, int newsockfd, int so
     return num_of_bytes;
 }
 
+void map_constructing(int newsockfd, int sockfd, char* line, int who) {
+    int fd = 0;
+    if(who == CLIENT_1) fd = open("f1.txt", O_WRONLY); 
+    if(who == CLIENT_2) fd = open("f2.txt", O_WRONLY); 
+    int num_of_bytes = 0;
+    int counter = 0;
+    num_of_bytes = my_write(fd, line, newsockfd, sockfd);
+    while((num_of_bytes = read(newsockfd, line, MAX_SYM)) > 0){
+	printf("line = %s\n", line);
+        num_of_bytes = my_write(fd, line, newsockfd, sockfd);
+        counter++;
+        printf("counter = %d\n", counter);
+        if(counter >= 9) break;
+    }
+    close(fd);
+}
+
 
 int search_map(FILE* f) {
     char suspect;
@@ -50,11 +51,12 @@ int search_map(FILE* f) {
     return alive;
 }
 
-int check(int coord_1, int coord_2, int* arr_1, int* arr_2, int length) {
+int check(int* coord, int* arr_1, int* arr_2, int length) {
     int iter = 0;
+    if(coord == NULL) return 0;
     for(iter = 0; iter < length; iter++) {
-        if(arr_1[iter] == coord_1) {
-            if(arr_2[iter] == coord_2) {
+        if(arr_1[iter] == coord[0]) {
+            if(arr_2[iter] == coord[1]) {
                 return 0;
             }
         }
@@ -62,16 +64,14 @@ int check(int coord_1, int coord_2, int* arr_1, int* arr_2, int length) {
     return 1;
 }
 
-
-
-
-int hit_or_miss(int coord_1, int coord_2, FILE* f){
+int hit_or_miss(int* coord, FILE* f) {
+    if(coord == NULL) return 0;
     char alive = 'o';
     char suspect;
     int offset = 0;
-    if(coord_1 > 0 && coord_1 <= 10){
-        if(coord_2 > 0 && coord_2 <= 10){
-            offset = (coord_1 - 1)*10 + coord_2 + coord_1 - 2;
+    if(coord[0] > 0 && coord[0] <= 10){
+        if(coord[1] > 0 && coord[1] <= 10){
+            offset = (coord[0] - 1)*10 + coord[1] + coord[0] - 2;
             fseek(f, offset, SEEK_SET);
             suspect = fgetc(f);
             if(suspect == alive) {
@@ -124,76 +124,136 @@ void show_file(FILE* f) {
     int iter = 0;
     while(!feof(f)) {
         for(iter = 0; iter < 10; iter++){
-        printf("%c", fgetc(f));
+            printf("%c", fgetc(f));
         }
         fputc('\n',stdin);
     }
 }
 
+int battle_preparing(int newsockfd, int sockfd, int* user_1, int* user_2) {
+    FILE* f1 = fopen("f1.txt", "r");
+    FILE* f2 = fopen("f2.txt", "r");
+    char* message;
+    int len_of_mess = 0;
+    int num_of_bytes = 0;
+    int enemy = 0;
+    int units = 0;
+    message = (char*)calloc(MAX_SYM, sizeof(char));
+    close(user_1[0]);
+    close(user_2[1]);
+    len_of_mess = my_write(user_1[1], "ready", newsockfd, sockfd);
+    while(len_of_mess = read(user_2[0], message, MAX_SYM) < 0) sleep(0.1);
+    num_of_bytes = my_write(newsockfd, "ready", newsockfd, sockfd);
+    check_map(f1, newsockfd, sockfd);
+    enemy = search_map(f2);
+    units = search_map(f1);
+    if(units != enemy) {
+        perror("Cheating, game will stoped");
+        my_write(newsockfd, "end", newsockfd, sockfd);
+        close(sockfd);
+        close(newsockfd);
+    }
+    return units;
+    fclose(f1);
+    fclose(f2);
+    free(message);
+}
+
+int* get_coordinates(int newsockfd, int* arr_str, int* arr_col, int* length) {
+    int num_of_bytes = 0;
+    int check_ = 0;
+    int counter = 0;
+    char* line;
+    char* delimeter = " ";
+    char** tokens;
+    int* quantity;
+    int* coordinates;
+    tokens = (char**)calloc(2, sizeof(char));
+    for(counter = 0; counter < 2; counter++) {
+        tokens[counter] = (char*)calloc(1, sizeof(char));
+    }	
+    line = (char*)calloc(MAX_SYM, sizeof(char));
+    quantity = (int*)calloc(1, sizeof(int));
+    coordinates = (int*)calloc(2, sizeof(int));
+    while((num_of_bytes = read(newsockfd, line, MAX_SYM)) < 0) sleep(0.1);
+    Split(line, delimeter, tokens, quantity);
+    coordinates[0] = atoi(tokens[0]);
+    coordinates[1] = atoi(tokens[1]);
+    if((check_ = check(coordinates, arr_str, arr_col, *length)) == 0) return NULL;
+    arr_str[*length] = coordinates[0];
+    arr_col[*length] = coordinates[1];
+    *length++;
+    if(line != NULL) free(line);
+    for(counter = 0; counter < 2; counter++) {
+        if(tokens[counter] != NULL) free(tokens[counter]);
+    }
+    free(tokens);
+    return coordinates;
+}
+
+void send_result(int result,int newsockfd, int sockfd, int* user_fd) {
+    int len_of_mess = 0;
+    int num_of_bytes = 0;
+    if(result == 1) {
+        num_of_bytes = my_write(newsockfd, "Hitting", newsockfd, sockfd);
+        } else {
+            num_of_bytes = my_write(newsockfd, "Missing", newsockfd, sockfd);
+        }
+    len_of_mess = my_write(user_fd[1], "shoot", newsockfd, sockfd);
+}
+
+void end_of_the_game(int newsockfd, int sockfd, int* user_fd) {
+    int len_of_mess = 0;
+    int num_of_bytes = 0;
+    len_of_mess = my_write(user_fd[1], "GameOver", newsockfd, sockfd);
+    num_of_bytes = my_write(newsockfd, "Victory", newsockfd, sockfd);
+}
+    
 void main() {
     int sockfd;
     int newsockfd;
     int clilen;
     int length = 0;
-    int res = 0;
+    int len_of_mess = 0;
     int result = 0;
-    int i, n ,k;
+    int units = 0;
     int user_fd_1[2];
     int user_fd_2[2];
-    int decision_fd[2];
-    int counter_1 = 0;
-    int counter_2 = 0;
-    int units = 0;
-    int enemy = 0;
     int num_of_bytes = 0;
     struct sockaddr_in servaddr;
     struct sockaddr_in cliaddr;
-    char* recvline = "end";
     char* message;
     char* line;
     int* arr_str;
     int* arr_col;
-    int len_of_mess_to;
-    int len_of_mess_into;
-    int the_num_of_str = 0;
-    int the_num_of_col = 0;
-    int the_num_of_dead_1 = 0;
-    int the_num_of_dead_2 = 0;
+    int the_num_of_dead = 0;
     int is_continue = 0;
-    int fd_1 = open("f1.txt", O_WRONLY);
-    int fd_2 = open("f2.txt", O_WRONLY);
-    char** tokens;
-    int* quantity;
-    char* delimeter = " ";
+    int* coord;
     pid_t pid;
     line = (char*)calloc(MAX_SYM, sizeof(char));
     arr_col = (int*)calloc(MAX_SYM, sizeof(int));
     arr_str = (int*)calloc(MAX_SYM, sizeof(int));
-    quantity = (int*)calloc(1, sizeof(int));
-    tokens = (char**)calloc(2, sizeof(char*));
+    coord = (int*)calloc(2, sizeof(int));
     message = (char*)calloc(MAX_SYM, sizeof(char));
-    for(i = 0; i < 2; i++) {
-        tokens[i] = (char*)calloc(2, sizeof(char));
-    }
-    if(pipe(user_fd_1) < 0 || pipe(user_fd_2) || pipe(decision_fd) < 0) {
-        perror("Can't create pipe");
+    if(pipe(user_fd_1) < 0 || pipe(user_fd_2)) {
+        printf("Can't create pipe");
         exit(1);
     }
     if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("Socket stage has a problem");
+        printf("Socket stage has a problem");
         exit(1);
     }
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(51277);
+    servaddr.sin_port = htons(51360);
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     if(bind(sockfd, (struct sockaddr*) &servaddr, sizeof(servaddr)) < 0) {
-        perror("Bind stage has a problem");
+        printf("Bind stage has a problem");
         close(sockfd);
         exit(1);
     }
     if(listen(sockfd, 5) < 0) {
-        perror("Listen stage hs a problem");
+        printf("Listen stage hs a problem");
         close(sockfd);
         exit(1);
     }
@@ -202,138 +262,73 @@ void main() {
         clilen = sizeof(cliaddr);
         if(pid == 0) {
             if((newsockfd = accept(sockfd, (struct sockaddr *) &cliaddr, &clilen)) < 0) {
-                perror("Accept stage has a problem");
+                printf("Accept stage has a problem");
                 close(sockfd);
                 exit(1);
             }
-            while((num_of_bytes = read(newsockfd, line, MAX_SYM)) > 0){
-                num_of_bytes = my_write(fd_1, line, strlen(line), newsockfd, sockfd);
-                counter_1++;
-                if(counter_1 > 9) {
-                    close(user_fd_1[0]);
-                    close(user_fd_2[1]);
-                    len_of_mess_to = my_write(user_fd_1[1], "ready", MAX_SYM, newsockfd, sockfd);
-                    while(len_of_mess_into = read(user_fd_2[0], message, MAX_SYM) < 0) sleep(0.1);
-                    close(fd_1);
-                    FILE* f1 = fopen("f1.txt", "r");
-                    FILE* f2 = fopen("f2.txt", "r");
-                    num_of_bytes = my_write(newsockfd, "ready", MAX_SYM, newsockfd, sockfd);
-                    check_map(f1, newsockfd, sockfd);
-                    enemy = search_map(f2);
-                    units = search_map(f1);
-                    if(units != enemy) {
-                        perror("Cheating, game will stoped");
-                        my_write(newsockfd, "end", MAX_SYM, newsockfd, sockfd);
-                        close(sockfd);
-                        close(newsockfd);
-                    }
-                    while(1) {
-                        while((num_of_bytes = read(newsockfd, line, MAX_SYM)) < 0) sleep(0.1);
-                        Split(line, delimeter, tokens, quantity);
-                        the_num_of_str = atoi(tokens[0]);
-                        the_num_of_col = atoi(tokens[1]);
-                        res = check(the_num_of_str, the_num_of_col, arr_str, arr_col, length);
-                        arr_col[length] = the_num_of_col;
-                        arr_str[length] = the_num_of_str;
-                        length++;
-                        if(res == 1) {
-                            result = hit_or_miss(the_num_of_str, the_num_of_col, f2);
-                            if(result == 1) {
-                                the_num_of_dead_1++;
-                                if(the_num_of_dead_1 == units) {
-                                    len_of_mess_to = my_write(user_fd_1[1], "end", MAX_SYM, newsockfd, sockfd);
-                                    num_of_bytes = my_write(newsockfd, "Victory", MAX_SYM, newsockfd, sockfd);
-                                    break;
-                                }
-                                num_of_bytes = my_write(newsockfd, "Hitting", MAX_SYM, newsockfd, sockfd);
-                            } else {
-                                num_of_bytes = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
+            while((num_of_bytes = read(newsockfd, line, MAX_SYM+2)) > 0) {
+                map_constructing(newsockfd, sockfd, line, 1);
+                units = battle_preparing(newsockfd, sockfd, user_fd_1, user_fd_2);
+                FILE* f1 = fopen("f1.txt", "r");
+                FILE* f2 = fopen("f2.txt", "r");
+                while(1) {
+                    coord = get_coordinates(newsockfd, arr_str, arr_col, &length);
+                    result = hit_or_miss(coord, f2);
+                    if(result == 1) {
+                        the_num_of_dead++;
+                        if(the_num_of_dead == units) { 
+                            end_of_the_game(newsockfd, sockfd, user_fd_1);
+                            break;
                             }
-                        } else {
-                            num_of_bytes = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
-                        }
-                        len_of_mess_to = my_write(user_fd_1[1], "shoot", MAX_SYM, newsockfd, sockfd);
-                        while((len_of_mess_into = read(user_fd_2[0], message, MAX_SYM)) < 0) sleep(0.1);
-                        is_continue = strcmp(message, "end");
-                        if(is_continue == 0) { 
-                                num_of_bytes = my_write(newsockfd, "Lose", MAX_SYM, newsockfd, sockfd);
-                                break;
+                    }
+                    send_result(result, newsockfd, sockfd, user_fd_1);
+                    while((len_of_mess = read(user_fd_2[0], message, MAX_SYM)) < 0) sleep(0.1);
+                    is_continue = strcmp(message, "GameOver");
+                    if(is_continue == 0) { 
+                        num_of_bytes = my_write(newsockfd, "Lose Game", newsockfd, sockfd);
+                        break;
                         }
                     }
                     break;
-                }
             }
         } else {
             if((newsockfd = accept(sockfd, (struct sockaddr *) &cliaddr, &clilen)) < 0) {
-                perror("Accept stage has a problem");
+                printf("Accept stage has a problem");
                 close(sockfd);
                 exit(1);
             }
-            while((num_of_bytes = read(newsockfd, line, MAX_SYM)) > 0){
-                num_of_bytes = my_write(fd_2, line, strlen(line), newsockfd, sockfd);
-                counter_2++;
-                if(counter_2 > 9) {
-                    close(fd_2);
-                    close(user_fd_2[0]);
-                    close(user_fd_1[1]);
-                    len_of_mess_to = my_write(user_fd_2[1], "ready", MAX_SYM, newsockfd, sockfd);
-                    while((len_of_mess_into = read(user_fd_1[0], message, MAX_SYM)) < 0) sleep(0.1);
-                    FILE* f2 = fopen("f2.txt", "r");
-                    FILE* f1 = fopen("f1.txt", "r");
-                    num_of_bytes = my_write(newsockfd, "ready", MAX_SYM, newsockfd, sockfd);
-                    check_map(f2, newsockfd, sockfd);
-                    units = search_map(f1);
-                    enemy = search_map(f2);
-                    if(enemy != units) {
-                        perror("Cheating, game will be stopped");
-                        n = my_write(newsockfd, "end", MAX_SYM, newsockfd, sockfd);
-                        close(sockfd);
-                        close(newsockfd);
+            while((num_of_bytes = read(newsockfd, line, MAX_SYM + 2)) > 0) {
+                map_constructing(newsockfd, sockfd, line, 2);
+                units = battle_preparing(newsockfd, sockfd, user_fd_2, user_fd_1);
+                FILE* f2 = fopen("f2.txt", "r");
+                FILE* f1 = fopen("f1.txt", "r");
+                while(1) {
+                    while((len_of_mess = read(user_fd_1[0], message, MAX_SYM)) < 0) sleep(0.1);
+                    is_continue = strcmp(message, "GameOver");
+                    if(is_continue == 0) {
+                        num_of_bytes = my_write(newsockfd, "Lose Game", newsockfd, sockfd);
+                        break;
                     }
-                    while(1) {
-                        while((len_of_mess_into = read(user_fd_1[0], message, MAX_SYM)) < 0) sleep(0.1);
-                        is_continue = strcmp(message, "end");
-                        if(is_continue == 0) {
-                            num_of_bytes = my_write(newsockfd, "Lose", MAX_SYM, newsockfd, sockfd);
+                    coord = get_coordinates(newsockfd, arr_str, arr_col, &length);
+                    result = hit_or_miss(coord, f1);
+                    if(result == 1){
+                        the_num_of_dead++;
+                        if(the_num_of_dead == units) { 
+                            end_of_the_game(newsockfd, sockfd, user_fd_2);
                             break;
                         }
-                        while((num_of_bytes = read(newsockfd, line, MAX_SYM)) < 0) sleep(0.1);
-                        Split(line, delimeter, tokens, quantity);
-                        the_num_of_str = atoi(tokens[0]);
-                        the_num_of_col = atoi(tokens[1]);
-			            res = check(the_num_of_str, the_num_of_col, arr_str, arr_col, length);
-                        arr_col[length] = the_num_of_col;
-                        arr_str[length] = the_num_of_str;
-                        length++;
-			            if(res == 1) {
-                        	result = hit_or_miss(the_num_of_str, the_num_of_col, f1);
-                        	if(result == 1){
-                            	the_num_of_dead_2++;
-                            	if(the_num_of_dead_2 == units) { 
-                                	len_of_mess_to = my_write(user_fd_2[1], "end", MAX_SYM, newsockfd, sockfd);
-                                	num_of_bytes = my_write(newsockfd, "Victory", MAX_SYM, newsockfd, sockfd);
-                                	break;
-                            	}
-                            	num_of_bytes = my_write(newsockfd, "Hitting", MAX_SYM, newsockfd, sockfd);
-                        	} else {
-                            	num_of_bytes = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
-                        	}
-			            } else {
-				            num_of_bytes = my_write(newsockfd, "Miss", MAX_SYM, newsockfd, sockfd);
-			            }
-                        len_of_mess_to = my_write(user_fd_2[1], "shoot", MAX_SYM, newsockfd, sockfd);
                     }
-                    break;
+                    send_result(result, newsockfd, sockfd, user_fd_2);
                 }
+                    break;
             }
         }
     }
-        if(n < 0) {
-            perror("n < 0");
-            close(sockfd);
-            close(newsockfd);
-            exit(1);
-        }
-        close(newsockfd);
+    close(newsockfd);
+    if(message != NULL) free(message);
+    if(line != NULL) free(line);
+    if(arr_str != NULL) free(arr_str);
+    if(arr_col != NULL) free(arr_col);
+    if(coord != NULL) free(coord);
 }  
 
