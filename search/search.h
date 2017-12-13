@@ -13,12 +13,10 @@
 #define MAX_SYM 10
 
 
-int search(char* string, int depth, const char* file);
+enum SearchingResult search(char* string, int depth, const char* file, char* answer);
 
-/*
-не особо ясные названия ф-й: возможно, changeToParentDir, append яснее выражают ваши намерения
-*/
-void decrease(char* string);
-char* increase(char* string, char* extra_dir);
+void changeToParentDir(char* string);
+
+void append(char* string, char* extra_dir);
 
 #endif /* _SEARCH_H_ */
