@@ -245,7 +245,7 @@ void main() {
     }
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(51360);
+    servaddr.sin_port = htons(51367);
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     if(bind(sockfd, (struct sockaddr*) &servaddr, sizeof(servaddr)) < 0) {
         printf("Bind stage has a problem");

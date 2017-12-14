@@ -1,10 +1,37 @@
 #include"client.h"
+
 void show_previous_strikes(int* str, int* col, char** results, int length) {
     while(length >= 0) {
         printf("coordinates(%d, %d), result:%s\n", str[length], col[length], results[length]);
         length--;
     }
 }
+
+void print_map(int* str_shoots, int* col_shoots, char** results, int length) {
+    printf("IN PROCESS\n");
+    int counter = 0;
+    int iter = 0;
+    char** map;
+    map = (char**)calloc(MAP_SIZE, sizeof(char*));
+    for(counter = 0; counter < 10; counter++) {
+        map[counter] = (char*)calloc(MAX_SYM, sizeof(char));
+        strcpy(map[counter], "**********");
+    }
+    for(iter = 0; iter < length+1; iter++) {
+        if(!strcmp(results[length], "Hitting")) {
+            map[str_shoots[length] - 1][col_shoots[length] - 1] = 'h';
+        } else {
+            map[str_shoots[length] - 1][col_shoots[length] - 1] = 'm';
+        }
+    }
+    for(counter = 0; counter < 10; counter++) {
+        printf("%s\n", map[counter]);
+        free(map[counter]);
+    }
+    free(map);
+}
+
+
 
 void main(int argc, char** argv) {
     int sockfd;
@@ -46,7 +73,7 @@ void main(int argc, char** argv) {
     }
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(51360);
+    servaddr.sin_port = htons(51367);
     if(inet_aton(argv[1], &servaddr.sin_addr) == 0) {
         printf("Invalid IP address\n");
         exit(1);
@@ -62,7 +89,7 @@ void main(int argc, char** argv) {
     printf("o is unit.\n"); 
     printf("After your enemy finish this level game begins. ATTENTION: If you give some coordinates and nothing is happen, don't worry, it just means, that now your enemy strikes. GOOD LUCK, HAVE FUN\n");
     for(i = 0; i < 10; i++) {
-        printf("Line[%d]:", i + 1);
+        printf("Line[%d]: ", i + 1);
         fflush(stdin);
         fgets(sendline, 1000, stdin);
         fflush(stdin);
@@ -91,6 +118,7 @@ void main(int argc, char** argv) {
         }
         strcpy(my_shoots[length], recvline);
         show_previous_strikes(str_shoots, col_shoots, my_shoots, length);
+	print_map(str_shoots, col_shoots, my_shoots, length);
         length++;
         printf("\n*result* = %s\n", recvline);
         if(strcmp(recvline, "Lose Game") == 0) {

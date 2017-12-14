@@ -19,6 +19,8 @@
 
 void show_previous_strikes(int* str, int* col, char** results, int length); //Shows our previous shoots
 
+void print_map(int* str_shoots, int* col_shoots, char* results, int length); //Print shoots on map(h = Hit, m = Miss);
+
 
 #endif /* _CLIENT_H_ */
 
