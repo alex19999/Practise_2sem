@@ -22,7 +22,10 @@ enum SearchingResult {
   NotFound
 };
 
-enum SearchingResult search(char *string, int deep, const char *file, char* answer) {
+/*
+мне кажется, что если заменить название string на path, то будет чуть яснее
+*/
+SearchingResult search(char *string, int deep, const char *file, char* answer) {
     DIR* dir;
     struct dirent *enter;
     int result;
@@ -31,6 +34,11 @@ enum SearchingResult search(char *string, int deep, const char *file, char* answ
     }
     if((dir = opendir(string)) == NULL) {
 	    perror("Can't open directory");
+	    /*
+	    это не повод обивать процесс. представьте, что эта ф-я - часть большой программы.
+	    у вас нет доступа к какой-то директории ... и вы из-за этого "убиваете" всю программу, что
+	    немного странно.
+	    */
 	    exit(1);
     }
     while((enter = readdir(dir)) != NULL) {
@@ -39,6 +47,10 @@ enum SearchingResult search(char *string, int deep, const char *file, char* answ
             return Found;
         }
     }
+	/*
+	вы дважды бежите по директории. можно в одном цикле и проверять имя файла, и рекурсивно запускаться, если
+	встретили директорию.
+	*/
     rewinddir(dir);
     while((enter = readdir(dir)) != NULL) {
         if(enter->d_type == 4 && strcmp(".", enter -> d_name) && strcmp("..", enter -> d_name)) {
@@ -46,8 +58,7 @@ enum SearchingResult search(char *string, int deep, const char *file, char* answ
             result = search(string, deep - 1, file, answer);
             if(result == Found) {
                 return Found;
-            }   
-            if(result == NotFound) {
+            } else {
                 changeToParentDir(string);
             }
         }
@@ -66,9 +77,14 @@ int main(int argc, char** argv) {
         int res = 0; 
         directory = (char*)calloc(MAX_SIZE, sizeof(char));
         file = (char*)calloc(MAX_SIZE, sizeof(char));
-        answer = (char*)calloc(100, sizeof(char));
+        answer = (char*)calloc(MAX_SIZE, sizeof(char));
         strcpy(directory, argv[1]);
         strcpy(file, argv[3]);
+	/*
+	if (search(...) == Found)
+	   print (answer)
+	и не надо проверять длину строки answer и т.п.
+	*/
         search(directory, deep, file, answer);
         if(strlen(answer) > 1) printf("File %s was founded in %s directory\n", file, answer);
         else printf("File %s was not founded\n", file);
