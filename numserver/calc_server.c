@@ -1,46 +1,75 @@
 #include "calc_server.h"
+#include <sys/msg.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 void my_semop(int semid, int change_value) {
-	struct sembuf mybuf;
-	mybuf.sem_op = change_value;
-	mybuf.sem_flg = 0;
-	mybuf.sem_num = 0;
-	if(semid < 0) {
-		printf("Incorrect semid is given\n");
-		exit(-1);
-	}
-	if(semop(semid, &mybuf, 1) < 0) {
-		printf("Can't wait for condition\n");
-		exit(-1);
-	}
+    if(semid < 0) {
+        printf("Incorrect semid\n");
+        exit(-1);
+    }
+    struct sembuf mybuf;
+    mybuf.sem_op = change_value;
+    mybuf.sem_flg = 0;
+    mybuf.sem_num = 0;
+    semop(semid, &mybuf, 1);
 }
 
-void* func_client(void* fd_1) {
-    descr fd = *((descr*)fd_1);
+
+void my_send_mes(int msqid, char* message) {
+    int result = 0;
+    int len = 0;
+    if(msqid < 0 || message == NULL) {
+        printf("Problems with message\n");
+        exit(-1);
+    }
+    struct msgbuf {
+        long mtype;
+        char mtext[1024];
+    } mybuf;
+    mybuf.mtype = 1;
+    strcpy(mybuf.mtext, message);
+    len = strlen(mybuf.mtext) + 1;
+    if((result = msgsnd(msqid, (struct msgbuf *) &mybuf, len, 0)) < 0) {
+        printf("Can't send message\n");
+        msgctl(msqid, IPC_RMID, (struct msqid_ds *) NULL);
+        exit(-1);
+    }
+}
+
+void my_receive_mes(int msqid, char* message) {
+    int result = 0;
+    int max_len = 20;
+    if(msqid < 0) {
+        printf("Problems with msqid\n");
+        exit(-1);
+    }
+    struct msgbuf {
+        long mtype;
+        char mtext[1024];
+    } mybuf;
+    mybuf.mtype = 1;
+    strcpy(mybuf.mtext, message);
+    if((result = msgrcv(msqid, (struct msgbuf *) &mybuf, max_len, 0, 0)) < 0) {
+        printf("Can't receive message\n");
+        exit(-1);
+    }
+    strcpy(message, mybuf.mtext);
+}
+
+
+void func_client(descr fd) {
     char *input;
     int num_of_bytes = 0;
     input = (char*)calloc(MAX_SYM, sizeof(char));
-	printf("Please, wait for your queue, if it will be necessary\n");
-	my_semop(fd.semid, -1);
-	printf("Give me arguments to multiply\n");
     while (1) {
         fgets(input, MAX_SYM*sizeof(char), stdin);
-        fd.fd_1 = open("fifo_to.fifo", O_WRONLY);
-        if((num_of_bytes = write(fd.fd_1, input, MAX_SYM)) < 0) {
-            printf("Can't write\n");
-            exit(-1);
-        }
-        close(fd.fd_1);
-        fd.fd_2 = open("fifo_in.fifo", O_RDONLY);
-        if((num_of_bytes = read(fd.fd_2, input, MAX_SYM)) < 0) {
-            printf("Can't read\n");
-            exit(-1);
-        }
-        close(fd.fd_2);
+	    my_send_mes(fd.msqid, input);
+	    my_receive_mes(fd.msqid, input);
         printf("result = %s\n", input);
-        break;
+		break;
     }
-	my_semop(fd.semid, 1);
 	free(input);
 }
 
@@ -57,7 +86,7 @@ int calculate_serv(char* str_for_mult) {
     for(iter = 0; iter < MAX_NUM_OF_ARGS; iter++) {
         tokens[iter] = (char*)calloc(MAX_SYM, sizeof(char));
     }
-    num_of_args = (int*)calloc(1, sizeof(int));
+    num_of_args = (int*)calloc(1, sizeof(int)); 
     Split(str_for_mult, delimeter, tokens, num_of_args);
     if(*num_of_args < 2) { 
    	    exit(0);
@@ -76,30 +105,19 @@ int calculate_serv(char* str_for_mult) {
 
 void* func_server(void* fd_2){
     descr fd = *((descr*)fd_2);
-    my_semop(fd.semid, MAX_CLIENTS);
     int num_of_bytes = 0; 
     int iter = 0;
     int result = 1;
     int counter = 0;
     char* res;
-    char *output;
-    output = (char*)calloc(MAX_SYM, sizeof(char));
+    char* output;
+    output = (char*)calloc(100, sizeof(char));
     res = (char*)calloc(MAX_SYM, sizeof(char));
     do {
-	    fd.fd_2 = open("fifo_to.fifo", O_RDONLY);
-        if((num_of_bytes = read(fd.fd_2, output, MAX_SYM)) < 0) {
-            printf("Can't read\n");
-            exit(-1);
-        }
-        close(fd.fd_2);
-        result = calculate_serv(output);
+        my_receive_mes(fd.msqid, output);
+	    result = calculate_serv(output);
         sprintf(res, "%d", result);
-        fd.fd_1 = open("fifo_in.fifo", O_WRONLY);
-        if((num_of_bytes = write(fd.fd_1, res, MAX_SYM)) < 0) {
-            printf("Can't write\n");
-            exit(-1);
-        }
-        close(fd.fd_1);
+		my_send_mes(fd.msqid, res);
 	} while(1);
     free(res);
     free(output);
@@ -113,34 +131,33 @@ int main(int argc, char **argv) {
         int status_2;
         pthread_t th_1;
         pthread_t th_2;
-        char* filename_1 = "fifo_to.fifo";
-        char* filename_2 = "fifo_in.fifo";
         int size = 1;
 	    key_t key;
 	    if((key = ftok("1.c", 0)) < 0) {
-		printf("Can't get key\n");
-		exit(-1);
-	    }
-	    if((fd.semid = semget(key, 1, 0666| IPC_CREAT)) < 0) {
-		    printf("Can't get semid\n");
+		    printf("Can't get key\n");
 		    exit(-1);
 	    }
-        if(access(filename_1, F_OK) == -1)
-        if (mknod(filename_1, S_IFIFO | 0666, 0) < 0) {
+        if((fd.semid = semget(key, 1, 0666 | IPC_CREAT)) < 0) {
+            printf("Can't get semid\n");
             exit(-1);
         }
-        if(access(filename_2, F_OK) == -1)
-        if (mknod(filename_2, S_IFIFO | 0666, 0) < 0) {
-            exit(-1);
-        }
+	    if((fd.msqid = msgget(key, 0666| IPC_CREAT)) < 0) {
+		    printf("Can't get msqid\n");
+		    exit(-1);
+	    }
         if(serv_or_client == CLIENT) {
-                status_2 = pthread_create(&th_2, NULL, func_client, &fd);
-                pthread_join(th_2, NULL);
-
+            printf("Please, wait, if it will be needed\n");
+            my_semop(fd.semid, -1);
+            printf("Give me arguments to multiply\n");
+            func_client(fd);
+            my_semop(fd.semid, 1);
         } else {
+            my_semop(fd.semid, 2);
             printf("semid = %d\n", fd.semid);
-            status_1 = pthread_create(&th_1, NULL, func_server, &fd);
-            pthread_join(th_1, NULL);
+            while(1) {
+                status_1 = pthread_create(&th_1, NULL, func_server, &fd);
+                pthread_join(th_1, NULL);
+            }
         }
     } else {
         printf("Incorrect number of args\n");
