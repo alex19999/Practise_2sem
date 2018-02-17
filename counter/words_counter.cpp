@@ -15,8 +15,8 @@ struct Statistics {
     string word;
 };
 
-bool compare ( const Statistics& s1, const Statistics& s2) {
-    if( s1.count > s2.count) 
+bool compare (const Statistics& s1, const Statistics& s2) {
+    if(s1.count > s2.count) 
         return true;
     if(s1.count == s2.count) {
         if(s1.word.size() > s2.word.size())
@@ -37,10 +37,12 @@ string prepare(const string& str) {
         }
         iter++;
     }
+    // fixit: в итоге надо все же убрать отладочный код
     std::cout << "new" << result << "\n";
     return result;
 }
 
+// запустите код для какой-нибудь книги большой, и залейте статистику в гит отдельным файлом. интересно будет сравнить, у кого что получится
 void print(const Statistics& s) {
     std::cout << s.word<<":"<<s.count << "\n";
 }
@@ -59,6 +61,7 @@ int main() {
             mymap[word]++;
         }
         iter = 0;
+        // уверены, что range-based for вам меньше нравится? вдвое меньше кода
         for (auto it = mymap.begin(); it != mymap.end(); ++it) {
             std::cout << (*it).first << " : " << (*it).second << std::endl;
         }
