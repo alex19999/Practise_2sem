@@ -16,4 +16,4 @@ bool compare(const std::pair<string, int>& p1, const std::pair<string, int>& p2)
 
 string prepare(const std::string& str);
 
-#endif
+#endif /* _WORDS_COUNTER_H_ */
