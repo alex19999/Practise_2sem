@@ -1,4 +1,8 @@
 #include "words_counter.h"
+#include <iostream>
+#include <fstream>
+#include <cstdlib>
+#include <vector>
 
 int main() {
     std::ifstream file("file.txt");

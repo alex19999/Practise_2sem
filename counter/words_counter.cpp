@@ -1,4 +1,6 @@
-#include"words_counter.h"
+#include<algorithm>
+#include<map>
+#include<string>
 
 using std::string;
 
