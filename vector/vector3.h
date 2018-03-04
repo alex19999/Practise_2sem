@@ -15,61 +15,37 @@ class Vector3 {
         float z;
     
     public:
+        /* constructor & destructor */
         Vector3(const float& a, const float& b, const float& c): x(a), y(b), z(c) {};
         Vector3(const Vector3& vec) : x(vec.x), y(vec.y), z(vec.z) {};
         ~Vector3() {};
-
-        /*friend ostream& operator<<(ostream& stream, const Vector3& vec) {
-            stream << vec.x << " " << vec.y << " " << vec.z;
-            return stream;
-        };
-
-        friend istream& operator>>(istream& stream, const Vector3& vec) {
-            stream >> vec.x >> vec.y >> vec.z;
-            return stream;
-        };*/
-
-        Vector3 operator+(const Vector3& other) const {
-            return Vector3(x + other.x, y + other.y, z + other.z);
-        };
-
-        Vector3& operator+=(const Vector3& other) {
-            x += other.x;
-            y += other.y;
-            z += other.z;
-            return *this;
-        };
-
-        Vector3 operator-(const Vector3& other) const {
-            return Vector3(x - other.x, y - other.y, z - other.z);
-        };
         
-        Vector3& operator-=(const Vector3& other) {
-            x -= other.x;
-            y -= other.y;
-            z -= other.z;
-            return *this;
-        };
+        /* overloaded operators */
+        Vector3 operator+(const Vector3& other) const;
+        Vector3& operator+=(const Vector3& other);
+        Vector3 operator-(const Vector3& other) const;
+        Vector3& operator-();
+        Vector3& operator-=(const Vector3& other);
+        float operator*(const Vector3& other) const;
+        Vector3 operator^(const Vector3& other) const;
         
-        float operator*(const Vector3& other) const {
-            return (x * other.x + y * other.y + z * other.z);
-        };
-        
-        Vector3 operator^(const Vector3& other) const {
-            return Vector3(y * other.z - z * other.y,
-                           z * other.x - x * other.z,
-                           x * other.y - y * other.x);
-        };
+        /* functions-members */
+        Vector3& mult(const float& scaler); // multiplicate vector and scaler;
+        Vector3& div(const float& scaler);  // divide vector on scaler;
+        Vector3 get_normal() const;         // getting any normal to the vector;
+        float len() const;                
+        float squareLen() const; 
+        Vector3& norm();                    // normalize vector;
+        void print() const;                 // another output method;
+        Vector3& rotate(const Vector3& axis, const float& alpha); // rotate this vector;
+        Vector3 get_rotated(const Vector3& axis, const float& alpha) const; // returns new rotated vector;
+        bool check() const { return(x == 0 && y == 0 && z == 0); }
 
-        Vector3& mult(const float& scaler);
-        Vector3& div(const float& scaler);
-        Vector3 get_normal() const;
-        float len() const;
-        float squareLen() const;
-        Vector3& norm();
-        void print();
-        //унарный минус Vector2 operator-() const;
-        Vector3& rotate(const Vector3& axis, const float& alpha);
-        Vector3 getRotated(const Vector3& axis, const float& alpha);
+        /* input and output */
+        friend ostream& operator<<(ostream& stream, const Vector3& vec);
+        friend istream& operator>>(istream& stream, Vector3& vec);
+
 
 };
+
+
