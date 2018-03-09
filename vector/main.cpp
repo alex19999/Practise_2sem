@@ -1,4 +1,6 @@
 #include"vector3.h"
+
+/* а зачем здесь valarray ? */
 #include<valarray>
 
 int main() {
@@ -25,6 +27,10 @@ int main() {
     std::cout << "rotate vec: " << vec.rotate(axis, 90) << "\n";
     std::cout << "vector mult: " << (vec ^ vec.get_normal()) << "\n";
     std::cout << "scaler mult: " << (axis * vec1) << "\n";
+    /*
+     fix it: 1) вместо div и mult для скаляров нужно перегрузить соответствующие операторы
+     2)  скобки лишние << vec1.div(5) <<
+    */
     std::cout << "div on scaler: " << (vec1.div(5)) << "\n";
     std::cout << "mult on scaler: " << (vec.mult(5)) << "\n";
     std::cout << "unary minus: " << -vec;
