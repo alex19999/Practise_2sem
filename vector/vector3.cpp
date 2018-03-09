@@ -18,16 +18,8 @@ Vector3 Vector3::operator-(const Vector3& other) const {
     return Vector3(x - other.x, y - other.y, z - other.z);
 };
 
-/*
-fixit:
-неконстантный вариант назовите invert
-унарный минус должен быть константным
-*/
-Vector3& Vector3::operator-() {
-    x = -x;
-    y = -y;
-    z = -z;
-    return *this;
+Vector3 Vector3::operator-() const{
+    return Vector3(x * -1, y * -1, z * -1);
 }
         
 Vector3& Vector3::operator-=(const Vector3& other) {
@@ -38,10 +30,7 @@ Vector3& Vector3::operator-=(const Vector3& other) {
 };
         
 float Vector3::operator*(const Vector3& other) const {
-    /*
-    скобки лишние
-    */
-    return (x * other.x + y * other.y + z * other.z);
+    return x * other.x + y * other.y + z * other.z;
 };
         
 Vector3 Vector3::operator^(const Vector3& other) const {
@@ -50,24 +39,17 @@ Vector3 Vector3::operator^(const Vector3& other) const {
                    x * other.y - y * other.x);
 };
 
-Vector3& Vector3::mult(const float& scaler) {
-    /*
-    1) const float& -> просто float
-    2) x *= scalar;
-    */
-    x = x * scaler; 
-    y = y * scaler; 
-    z = z * scaler;
+Vector3& Vector3::operator*=(float scalar) {
+    x *= scalar; 
+    y *= scalar; 
+    z *= scalar;
     return *this;
 }
 
-Vector3& Vector3::div(const float& scaler) {
-    /*
+Vector3& Vector3::operator/=(float scalar) {
     x /= scalar;
-    */
-    x = x / scaler;
-    y = y / scaler;
-    z = z / scaler;
+    y /= scalar;
+    z /= scalar;
     return *this;
 }
 
@@ -76,21 +58,17 @@ void Vector3::print() const {
 }
 
 float Vector3::len() const {
-    return sqrt(x * x +
-                y * y +
-                z * z);
+    return sqrt(squareLen());
 }
 
 float Vector3::squareLen() const {
-    /*
-    fixit: наоборот надо len через squareLen считать, чтобы не было ошибок в округлении
-    */
-    return len() * len();
+    return x * x + y * y + z * z;
+    ;
 }
 
 Vector3 Vector3::get_rotated(const Vector3& axis, const float& alpha) const {
     
-    if(axis.check() || check()) {
+    if(axis.almost_equal_to_zero() || almost_equal_to_zero()) {
         std::cout << "Can't rotate null vector or around the null vector\n";
         return Vector3(0, 0, 0);
     }
@@ -99,25 +77,6 @@ Vector3 Vector3::get_rotated(const Vector3& axis, const float& alpha) const {
     float cos_alpha = cos(alpha * PI / 180);
     float sin_alpha = sin(alpha * PI / 180);
 
-    /*
-    покомпонентные операции выглядят жестко ... я тут в закромах нашел такой вариант
-    
-  void Rotate(const Vector3 &axis, const T sinAng, const T cosAng)
-  {
-    Vector3<T> self = *this;
-    Vector3<T> x = self - axis * (axis * self);
-    Vector3<T> y = x ^ axis;
-    Vector3<T> delta = x * cosAng + y * sinAng - x;
-    self += delta;
-    *this = self;
-  }
-
-  void  Rotate(const Vector3 &axis, const T angle)
-  {
-    Rotate(axis, sin(angle), cos(angle));
-  }
-    */
-    
     /* computing new elements */
     auto first_el = (cos_alpha + (1 - cos_alpha) * axis.x * axis.x) * x
              + ((1 - cos_alpha) * axis.x * axis.y - sin_alpha * axis.z) * y
@@ -137,16 +96,12 @@ Vector3 Vector3::get_rotated(const Vector3& axis, const float& alpha) const {
 
 
 Vector3& Vector3::rotate(const Vector3& axis, const float& alpha) {
-    /*
-    можно так
-    *this = get_rotated(axis, alpha);
-    */
-    *this = this->get_rotated( axis, alpha);
+    *this = get_rotated( axis, alpha);
     return *this;
 }
     
 Vector3& Vector3::norm() {
-    if(check()) {
+    if(almost_equal_to_zero()) {
         std::cout << "Can't normalize null vector\n";
         x = 0;
         y = 0;
@@ -160,15 +115,12 @@ Vector3& Vector3::norm() {
 }
 
 Vector3 Vector3::get_normal() const {
-    if(check()) {
+    if(almost_equal_to_zero()) {
         std::cout << "Can't find normal to null vector\n";
         return Vector3(0, 0, 0);
     }
     if(x == 0 && y == 0) 
         return Vector3(z, 0, 0);
-    /*
-    чуть странно. я б не так написал. можно на семинаре обсудить.
-    */
     return Vector3(-y, x, 0);
 }
 
