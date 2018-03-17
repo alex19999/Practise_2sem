@@ -26,7 +26,7 @@ int main() {
     std::cout << "scaler mult: " << (axis * vec1) << "\n";
     std::cout << "div on scaler: " << (vec1 /= 5) << "\n";
     std::cout << "mult on scaler(1): " << (vec *= 5) << "\n";
-	std::cout << "mult on scaler(2): " << (5 *= vec) << "\n";
+    std::cout << "mult on scaler(2): " << (5 *= vec) << "\n";
     std::cout << "unary minus: " << -vec;
 }
     
