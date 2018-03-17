@@ -52,9 +52,7 @@ Vector3 operator*=(float scalar,  Vector3 vec) {
 }
 
 Vector3& Vector3::operator/=(float scalar) {
-    x /= scalar;
-    y /= scalar;
-    z /= scalar;
+	*this *= 1.0/scalar;
     return *this;
 }
 
@@ -68,7 +66,6 @@ float Vector3::len() const {
 
 float Vector3::squareLen() const {
     return x * x + y * y + z * z;
-    ;
 }
 
 Vector3 Vector3::get_rotated(const Vector3& axis, const float& alpha) const {
@@ -106,16 +103,10 @@ Vector3& Vector3::rotate(const Vector3& axis, const float& alpha) {
 }
     
 Vector3& Vector3::norm() {
-    if(almost_equal_to_zero()) {
+    if(almost_equal_to_zero()) 
         std::cout << "Can't normalize null vector\n";
-        x = 0;
-        y = 0;
-        z = 0;
-    } else {
-        x = x / this->len();
-        y = y / this->len();
-        z = z / this->len();
-    }
+	else 
+		*this /= this->len();
     return *this;
 }
 
@@ -128,6 +119,16 @@ Vector3 Vector3::get_normal() const {
         return Vector3(z, 0, 0);
     return Vector3(-y, x, 0);
 }
+
+bool Vector3::almost_equal_to_zero() const {
+	float epsilon = std::numeric_limits<float>::epsilon();
+	if(x < epsilon && x > -epsilon)
+		if(y < epsilon && y > -epsilon)
+			if(z < epsilon && z > -epsilon)
+				return true;
+	return false;
+}
+
 
 ostream& operator<<(ostream& stream, const Vector3& vec) {
     stream << vec.x << " " << vec.y << " " << vec.z;
