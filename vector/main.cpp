@@ -1,8 +1,5 @@
 #include"vector3.h"
 
-/* а зачем здесь valarray ? */
-#include<valarray>
-
 int main() {
     Vector3 vec1(5, 4, 3);
     Vector3 vec(1, 0, 0);
@@ -28,7 +25,8 @@ int main() {
     std::cout << "vector mult: " << (vec ^ vec.get_normal()) << "\n";
     std::cout << "scaler mult: " << (axis * vec1) << "\n";
     std::cout << "div on scaler: " << (vec1 /= 5) << "\n";
-    std::cout << "mult on scaler: " << (vec *= 5) << "\n";
+    std::cout << "mult on scaler(1): " << (vec *= 5) << "\n";
+	std::cout << "mult on scaler(2): " << (5 *= vec) << "\n";
     std::cout << "unary minus: " << -vec;
 }
     

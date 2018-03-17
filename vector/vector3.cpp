@@ -46,6 +46,11 @@ Vector3& Vector3::operator*=(float scalar) {
     return *this;
 }
 
+Vector3 operator*=(float scalar,  Vector3 vec) {
+    vec *= scalar;
+    return vec;
+}
+
 Vector3& Vector3::operator/=(float scalar) {
     x /= scalar;
     y /= scalar;

@@ -55,6 +55,8 @@ class Vector3 {
             return false;
             }
 
+        friend Vector3 operator*=(float scalar, Vector3 vec);
+
         /* input and output */
         friend ostream& operator<<(ostream& stream, const Vector3& vec);
         friend istream& operator>>(istream& stream, Vector3& vec);
