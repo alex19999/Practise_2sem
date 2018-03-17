@@ -47,6 +47,9 @@ Vector3& Vector3::operator*=(float scalar) {
 }
 
 Vector3& Vector3::operator/=(float scalar) {
+    /*
+    можно через оператор *= реализовать, чтобы не похожий код не писать дважды
+    */
     x /= scalar;
     y /= scalar;
     z /= scalar;
@@ -63,7 +66,6 @@ float Vector3::len() const {
 
 float Vector3::squareLen() const {
     return x * x + y * y + z * z;
-    ;
 }
 
 Vector3 Vector3::get_rotated(const Vector3& axis, const float& alpha) const {
@@ -107,6 +109,9 @@ Vector3& Vector3::norm() {
         y = 0;
         z = 0;
     } else {
+        /*
+        fixit: у вас же есть оператор /=
+        */
         x = x / this->len();
         y = y / this->len();
         z = z / this->len();
