@@ -5,6 +5,10 @@
 #include<limits>
 
 #define ACCURANCY 2
+/*
+    accuracy
+    вы не используете эту константу. лучше удалить совсем.
+*/
 
 using std::istream;
 using std::ostream;
@@ -25,6 +29,9 @@ class Vector3 {
         float get_x() const { return x; }
         float get_y() const { return y; }
         float get_z() const { return z; }
+        /*
+        fixit: А каким образом можно задать значение компонент кроме как пересоздать вектор заново?
+        */
         
         /* overloaded operators */
         Vector3 operator+(const Vector3& other) const;
@@ -42,10 +49,19 @@ class Vector3 {
         float len() const;                
         float squareLen() const; 
         Vector3& norm();                    // normalize vector;
+        /*
+        переопределенный operator << лучше тем, что работает и для записи в файл,
+        а print только на экран пишет
+        */
         void print() const;                 // another output method;
         Vector3& rotate(const Vector3& axis, const float& alpha); // rotate this vector;
         Vector3 get_rotated(const Vector3& axis, const float& alpha) const; // returns new rotated vector;
     
+        /*
+        1) код ниже рассчитан на то, что компоненты вектора от 0 до 1 мо модулю.
+        здесь http://ru.cppreference.com/w/cpp/types/numeric_limits/epsilon общий случай
+        2) реализацию надо в cpp перенести
+        */
         bool almost_equal_to_zero() const { 
             float epsilon = std::numeric_limits<float>::epsilon();
             if(x < epsilon && x > -epsilon)
