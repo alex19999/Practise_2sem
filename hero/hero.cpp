@@ -10,7 +10,7 @@
 
 #define BORDER 50
 #define PI 3.14159f
-#define VELOCITY 150.0f
+#define VELOCITY 1.0f
 
 #define ALONG 1
 #define AGAINST 2 
@@ -50,7 +50,6 @@ bool Bullet::check(const sf::Window& window) const {
 void Bullet::run(sf::Time time) {
     x += velocity.x * time.asSeconds();
     y += velocity.y * time.asSeconds();
-    std::cout << x << " " << y << "\n";
     bullet.setPosition(x, y);
 }
 
@@ -68,18 +67,21 @@ void draw_bullet(const Bullet& bullet, sf::RenderWindow& window) {
     window.draw(bullet.get_bullet());
 }
 
-void run_bullets(const std::list<Bullet>& bullets, sf::Time time) {
+void run_bullets(std::list<Bullet>& bullets, sf::Time time) {
     if(bullets.empty())
         return;
-    for(auto it : bullets)
+    for(auto& it : bullets)
         it.run(time);
 }
 
 void shooting(std::list<Bullet>& bullets, sf::RenderWindow& window) {
     if(bullets.empty())
         return;
-    for(auto it : bullets)
+    for(auto& it : bullets)
+    {
+        std::cout<< "here" << std::endl;
         draw_bullet(it, window);
+    }
 }
 
 int main() {
@@ -129,16 +131,14 @@ int main() {
 							circle.move(0, 10);
 					break;
 				case sf::Event::MouseButtonPressed:
-					if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
-                    {
-                        std::cout << "d.x = " << d.x;
-                        bullets.push_front(Bullet(circle.getPosition().x, circle.getPosition().y, 
+					
+                    if(sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                        bullets.push_back(Bullet(circle.getPosition().x, circle.getPosition().y, 
                                            sf::Vector2f(d.x * VELOCITY, d.y * VELOCITY), texture_));
-						std::cout << "hui\n";
-                    }
+                    
                     if(sf::Mouse::isButtonPressed(sf::Mouse::Right))
                     {
-			            sf::RectangleShape line1(sf::Vector2f(SIZE_X * SIZE_Y, 3));
+			            sf::RectangleShape line1(sf::Vector2f(20 * 20, 3));
 			            line1.setFillColor(sf::Color::Red);
 			            line1.setPosition(circle.getPosition().x, circle.getPosition().y);
 			            line1.setRotation(atan2f(d.y, d.x) * 180 / PI);
