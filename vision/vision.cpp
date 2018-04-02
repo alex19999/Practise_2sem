@@ -4,6 +4,7 @@
 #include <dlib/image_processing/render_face_detections.h>
 #include <dlib/image_processing.h>
 #include <dlib/gui_widgets.h>
+#include <opencv2/videoio.hpp>
 
 using namespace dlib;
 using namespace std;
@@ -27,7 +28,6 @@ int main()
 
         while(!win.is_closed())
         {
-            // Grab a frame
             cv::Mat temp;
             if (!cap.read(temp))
             {
@@ -44,12 +44,10 @@ int main()
             win.set_image(cimg);
             win.add_overlay(render_face_detections(shapes));
         }
+        cap.release();
     }
     catch(serialization_error& e)
     {
-        cout << "You need dlib's default face landmarking model file to run this example." << endl;
-        cout << "You can get it from the following URL: " << endl;
-        cout << "   http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2" << endl;
         cout << endl << e.what() << endl;
     }
     catch(exception& e)
