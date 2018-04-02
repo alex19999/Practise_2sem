@@ -8,9 +8,8 @@
 #define SIZE_X 800
 #define SIZE_Y 600
 
-#define BORDER 50
 #define PI 3.14159f
-#define VELOCITY 1.0f
+#define VELOCITY 3.0f
 
 #define ALONG 1
 #define AGAINST 2 
@@ -33,19 +32,22 @@ class Bullet {
             bullet.setPosition(x, y);
         };
         
+        ~Bullet(){}; 
+        
         void run(sf::Time time); // running our bullets
         float get_x () const { return x; } 
         float get_y () const { return y; }
         sf::Sprite get_bullet() const { return bullet; }
         void init(); // init position and color
-        bool check(const sf::Window& window) const; // check if the bullet is on the window
 };
 
-bool Bullet::check(const sf::Window& window) const {
-    if(x < 0 || y < 0 || x > window.getSize().x || y > window.getSize().y)
-        return false;
-    return true;
+bool check(const Bullet& bullet) {
+   if(bullet.get_x() < 0 || bullet.get_x() > SIZE_X ||
+      bullet.get_y() < 0 || bullet.get_y() > SIZE_Y)
+            return true;
+    return false;
 }
+
 
 void Bullet::run(sf::Time time) {
     x += velocity.x * time.asSeconds();
@@ -78,10 +80,13 @@ void shooting(std::list<Bullet>& bullets, sf::RenderWindow& window) {
     if(bullets.empty())
         return;
     for(auto& it : bullets)
-    {
-        std::cout<< "here" << std::endl;
         draw_bullet(it, window);
-    }
+}
+
+void delete_bullets(std::list<Bullet>& bullets, const sf::Window& window) {
+    if(bullets.empty())
+        return; 
+    bullets.remove_if(check);
 }
 
 int main() {
@@ -97,6 +102,7 @@ int main() {
 	sf::Sprite circle(texture);
 	circle.setScale(0.5f, 0.5f);
 	circle.setPosition(SIZE_X / 2, SIZE_Y / 2);
+    float screen_len = std::sqrt(SIZE_X * SIZE_X + SIZE_Y * SIZE_Y);
 	while(window.isOpen()) {
 		window.clear(sf::Color::Blue);
 		window.draw(circle);
@@ -138,7 +144,7 @@ int main() {
                     
                     if(sf::Mouse::isButtonPressed(sf::Mouse::Right))
                     {
-			            sf::RectangleShape line1(sf::Vector2f(20 * 20, 3));
+			            sf::RectangleShape line1(sf::Vector2f(screen_len, 5));
 			            line1.setFillColor(sf::Color::Red);
 			            line1.setPosition(circle.getPosition().x, circle.getPosition().y);
 			            line1.setRotation(atan2f(d.y, d.x) * 180 / PI);
@@ -151,6 +157,7 @@ int main() {
 		}
         run_bullets(bullets, time);
         shooting(bullets, window);
+        delete_bullets(bullets, window);
 
 		window.display();
 	}
