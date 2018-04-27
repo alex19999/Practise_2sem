@@ -9,163 +9,155 @@
 #define SIZE_Y 1000
 #define G      0.08
 #define speed  0.1
-#define border 200
+#define border 250
 
-class Bird 
+class Object
 {
-    private:
-        float x;
-        float y;
+    protected:
         sf::Vector2f velocity;
-        sf::Sprite bird;
-    
+        sf::Sprite object;
+
+    public:
+        // c-tor and d-tor
+        Object();
+        Object(const sf::Vector2f& vel, const sf::Texture& texture, const sf::Vector2f scale) :
+            velocity(vel), object(texture) {};
+        ~Object(){};
+
+        // methods
+        sf::Vector2f get_velocity() { return velocity; }
+        sf::Sprite get_object()     { return object;   }
+        void draw(sf::RenderWindow& window);
+};
+
+class Bird : public Object
+{
     public:
         Bird();
-        Bird(float coord_x, float coord_y, const sf::Vector2f& vel, const sf::Texture& texture, float scale = 0.01f) : // c-tor
-            x(coord_x), y(coord_y), velocity(vel), bird(texture) 
+        Bird(const sf::Vector2f& vel, const sf::Texture& texture, const sf::Vector2f scale) : Object(vel, texture, scale)
         { 
-            bird.setOrigin(scale, scale); 
-            bird.setPosition(x, y);
+            object.setOrigin(1, 1); 
+            object.setPosition(SIZE_X / 2, SIZE_Y / 2);
         };
         ~Bird(){};
         
-        float get_x() { return x; }
-        float get_y() { return y; }
-        sf::Vector2f get_velocity() { return velocity; }
-        sf::Sprite get_bird() const { return bird; }
         void fly();
         void apply_force(sf::Time& time);
         float is_collision();
 };
 
-class Wall
+class Tree : public Object
 {
-    private:
-        float x;
-        float y;
-        sf::Vector2f velocity;
-        sf::Sprite wall;
-
     public:
-        Wall();
-        Wall(float coord_x, float coord_y, const sf::Vector2f& vel, const sf::Texture& texture, float scale = 0.01f) : // c-tor
-            x(coord_x), y(coord_y), velocity(vel), wall(texture)
+        Tree();
+        Tree(const sf::Vector2f& vel, const sf::Texture& texture, sf::Vector2f scale, float coord_y) : Object(vel, texture, scale)
         {
-            wall.setOrigin(scale, scale);
-            wall.scale(0.9, 0.6);
-            wall.setPosition(x, coord_y);
+            object.scale(scale.x, scale.y);
+            object.setPosition(SIZE_X, coord_y);
         };
-        ~Wall(){};
-        float get_x() { return x; }
-        float get_y() { return y; }
-        void move(sf::Time& time);
+        ~Tree(){};
+        
+        void move();
         bool check();
-        sf::Vector2f get_velocity() { return velocity; }
-        sf::Sprite get_wall() const { return wall; }
 };
 
-void draw_wall(const Wall& wall, sf::RenderWindow& window)
+void Object::draw(sf::RenderWindow& window) 
 {
-    window.draw(wall.get_wall());
+        window.draw(this->get_object());
 }
 
-void draw_bird(const Bird& bird, sf::RenderWindow& window) 
+void Tree::move() 
 {
-        window.draw(bird.get_bird());
-}
-
-void Wall::move(sf::Time& time) 
-{
-    wall.move(sf::Vector2f(-speed, 0));
-    std::cout << "y = " << wall.getPosition().y;
-    wall.setPosition(wall.getPosition());
+    object.move(sf::Vector2f(velocity.x, 0));
 }
 
 void Bird::apply_force(sf::Time& time) 
 {
     auto t = time.asSeconds();
     velocity.y = G * t; 
-    y = y + velocity.y * t / 2;
-    bird.setPosition(x, y);
+    object.move(0, velocity.y * t / 2);
 }
 
 void Bird::fly() 
 {
     velocity.y = -15;
-    y = y + velocity.y * 1 / 2;
-    bird.setPosition(x, y);
+    object.move(0, velocity.y * 1 / 2);
 }
 
-bool Wall::check() 
+bool Tree::check() 
 {
-    auto x_coord = wall.getPosition().x + border;
-    if(x_coord < 0 || x_coord > SIZE_X)
+    auto x_coord = object.getPosition().x + border;
+    if(x_coord < 0 || x_coord > SIZE_X + border)
         return true;
     return false;
 }
 
-void draw_walls(std::vector<Wall>& walls, sf::RenderWindow& window) 
+void draw_trees(std::vector<Tree>& trees, sf::RenderWindow& window) 
 {
-    if(walls.empty())
+    if(trees.empty())
         return;
-    for(auto& it : walls)
-        draw_wall(it, window);
+    for(auto& it : trees)
+        it.draw(window);
 }
 
-void move_walls(std::vector<Wall>& walls, sf::Time& time)
+void move_trees(std::vector<Tree>& trees)
 {
-    if(walls.empty())
+    if(trees.empty())
         return;
-    for(auto& it : walls)
-        it.move(time);
+    for(auto& it : trees)
+        it.move();
 }
 
-void delete_walls(std::vector<Wall>& walls)
+void delete_trees(std::vector<Tree>& trees)
 {
-    if(walls.empty())
+    if(trees.empty())
         return;
-    for(auto& p : walls) 
+    for(auto& it : trees) 
     {
-        if(p.check())
-        {
-            std::cout << "hui";
-            walls.pop_back();
-        }
+        if(it.check())
+            trees.pop_back();
     }
 }
 
+float myrandom(float min, float max) 
+{
+    return (float)(rand())/RAND_MAX*(max - min) + min;
+}
 
 int main() 
 {
 	sf::RenderWindow window(sf::VideoMode(SIZE_X, SIZE_Y), "My window");
 	sf::Texture texture_bird;
-    sf::Texture texture_wall;
+    sf::Texture texture_tree_up;
+    sf::Texture texture_tree_down;
     sf::Event event;
     sf::Clock clock;
-    sf::Clock clock_wall;
     sf::Time time;
-    sf::Time time_wall;
-    std::vector<Wall> walls;
+    std::vector<Tree> trees;
     texture_bird.loadFromFile("Bird-32.png");
-    texture_wall.loadFromFile("images.png");
-    auto bird = new Bird(SIZE_X/2, SIZE_Y/4, sf::Vector2f(0, 0), texture_bird);
-    auto wall_up = new Wall(SIZE_X / 2, 0, sf::Vector2f(0, 0), texture_wall);
-    auto wall_down = new Wall(SIZE_X / 2, 650, sf::Vector2f(0, 0), texture_wall);
+    texture_tree_up.loadFromFile("tree_up.png");
+    texture_tree_down.loadFromFile("tree_down.png");
+    auto bird = new Bird(sf::Vector2f(0, 0), texture_bird, sf::Vector2f(0.1, 0.1));
+    auto tree_up = new Tree(sf::Vector2f(-0.1, 0), texture_tree_up, sf::Vector2f(1, 1), 0);
+    auto tree_down = new Tree(sf::Vector2f(-0.1, 0), texture_tree_down, sf::Vector2f(1, 1), 650);
     while(window.isOpen()) 
     {
-        if(walls.empty())
+        auto scale = myrandom(0.9, 1.5);
+        auto scale_ = (SIZE_Y - 20 - scale * 400) / 400;
+       // auto tree_up = new Wall(SIZE_X, 0, sf::Vector2f(0, 0), texture_wall_up, sf::Vector2f(1, scale));
+       // auto tree_down = new Wall(SIZE_X, 650, sf::Vector2f(0, 0), texture_wall_down, sf::Vector2f(1, scale_));
+        if(trees.empty())
         {
-            walls.push_back(*wall_down);
-            walls.push_back(*wall_up);
+            trees.push_back(*tree_down);
+            trees.push_back(*tree_up);
         }
         
-		window.clear(sf::Color::Blue);
-        draw_bird(*bird, window);
-        draw_walls(walls, window);
+		window.clear(sf::Color::Cyan);
+        bird->draw(window);
+        draw_trees(trees, window);
         time = clock.getElapsedTime();
-        time_wall = clock_wall.getElapsedTime();
         bird->apply_force(time);
-        move_walls(walls, time_wall);
+        move_trees(trees);
         while(window.pollEvent(event)) 
         {
             switch(event.type) {
@@ -183,7 +175,7 @@ int main()
                     break;
             }
         }
-    delete_walls(walls);
+    delete_trees(trees);
     window.display();
     }
 	return 0;
