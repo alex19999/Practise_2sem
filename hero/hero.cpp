@@ -10,11 +10,17 @@
 
 #define PI 3.14159f
 #define VELOCITY 3.0f
-
+/*
+fixit: для ALONG, AGAINST и т.д. используйте enum'ы
+*/
 #define ALONG 1
 #define AGAINST 2 
 #define UP 3
 #define DOWN 4
+
+/*
+Fixit: используйте типизированные константы вместо define'ов
+*/
 
 class Bullet {
     private:
@@ -22,7 +28,8 @@ class Bullet {
         float y;
         sf::Vector2f velocity;
         sf::Sprite bullet;
-
+// Лучше не смешивать отрисовку (sf::Sprite) с логикой/физикой ... которая от отрисовски не зависит.
+	
     public:
         Bullet(); //default
         Bullet(float coord_x, float coord_y, const sf::Vector2f& vel, const sf::Texture& texture, float scale = 5.0f) : // c-tor
@@ -34,9 +41,12 @@ class Bullet {
         
         ~Bullet(){}; 
         
+	// fixit: const sf::Time& time
         void run(sf::Time time); // running our bullets
         float get_x () const { return x; } 
         float get_y () const { return y; }
+	
+	// fixit ? каждый раз при вызове вы создаете копию спрайта ... так и планировалось?
         sf::Sprite get_bullet() const { return bullet; }
         void init(); // init position and color
 };
@@ -69,6 +79,7 @@ void draw_bullet(const Bullet& bullet, sf::RenderWindow& window) {
     window.draw(bullet.get_bullet());
 }
 
+/// fixit: const sf::Time& time
 void run_bullets(std::list<Bullet>& bullets, sf::Time time) {
     if(bullets.empty())
         return;
@@ -76,6 +87,7 @@ void run_bullets(std::list<Bullet>& bullets, sf::Time time) {
         it.run(time);
 }
 
+/// fixit: название ф-и - глагол
 void shooting(std::list<Bullet>& bullets, sf::RenderWindow& window) {
     if(bullets.empty())
         return;
@@ -97,6 +109,7 @@ int main() {
     sf::Clock clock;
     sf::Time time;
     std::list<Bullet> bullets;
+	/// fixit: код ф-и main довольно громоздкий ... можно ли разбить её на отдельные ф-и?
 	texture.loadFromFile("Belarus.png");
     texture_.loadFromFile("bullet.png");
 	sf::Sprite circle(texture);
@@ -123,6 +136,7 @@ int main() {
 					window.close();
 					break;
 				case sf::Event::KeyPressed:
+					/// switch? + у вас движение персонажа не зависит почему-то от dt и скорости
 					if(event.key.code == sf::Keyboard::A)
 						if(may_move(circle, AGAINST))
 							circle.move(-10, 0);
