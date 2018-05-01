@@ -159,7 +159,12 @@ bool Bird::is_collision(std::vector<Tree>& trees)
     auto bird_pos = get_position();
     auto bird_origin = get_origin();
 
-    //std::cout << "bird_x = " << bird_pos.x << " bird_y = " << bird_pos.y << std::endl;
+    // Столкновения с землей и вылет за карту
+    if(bird_pos.y >= 900 || bird_pos.y <= 0)
+    {
+        std::cout << "out of the map" << std::endl;
+        return 1;
+    }
 
     for(auto& it : trees) 
     {
@@ -167,27 +172,19 @@ bool Bird::is_collision(std::vector<Tree>& trees)
         auto tree_origin = it.get_origin();
         auto tree_scale = it.get_scale();
 
-        //std::cout << "tree_x = " << tree_pos.x << " tree_y = " << tree_pos.y << std::endl;
+        if(tree_pos.x - tree_origin.x <= bird_pos.x + bird_origin.x &&
+           tree_pos.x + tree_origin.x >= bird_pos.x - bird_origin.x)
+        {
+            // Столкновение либо с верхним деревом, либо с нижним соответственно
+            if(bird_pos.y + bird_origin.y <=  800 - real_size_y * tree_scale.y ||
+               bird_pos.y >= 900 - real_size_y * tree_scale.y)
+            {
+                std::cout << "collision" << std::endl;
+                return 1;
+            }
 
-        if(bird_pos.y + bird_origin.y <= real_size_y * tree_scale.y + tree_origin.y)
-        {
-           // std::cout << "hui\n";
-            if(bird_pos.x + bird_origin.x == static_cast<int>(tree_pos.x))
-            {
-                std::cout << "collision_up\n";
-                return 1;
-            }
-        } 
-        
-        if(bird_pos.y + bird_origin.y <= 900 - real_size_y * tree_scale.y + tree_origin.y)
-        {
-            if(bird_pos.x + bird_origin.x == static_cast<int>(tree_pos.x))
-            {
-                std::cout << "collision_down\n";
-                return 1;
-            }
+            return 0;
         }
-        return 0;
     }
 }
 
@@ -256,17 +253,17 @@ int main()
     view2.setSize(sf::Vector2f(1000, 1000));
 
     auto bird = new Bird(sf::Vector2f(0, 0), texture_bird, sf::Vector2f(1, 1), 
-                         sf::Vector2f(SIZE_X / 2, SIZE_Y / 2), sf::Vector2f(32, 32));
+                         sf::Vector2f(SIZE_X / 2, SIZE_Y / 2), sf::Vector2f(16, 16));
     while(window.isOpen()) 
     {
         auto scale_up = myrandom(0.5, 1.5);
         auto scale_down = (900 - 100 - scale_up * 400) / 400;
         auto tree_up = new Tree(sf::Vector2f(-0.05, 0), texture_tree_up, sf::Vector2f(1, scale_up), 
-                                sf::Vector2f(SIZE_X, 0), sf::Vector2f(50, 0));
+                                sf::Vector2f(SIZE_X, 0), sf::Vector2f(54.5, 0));
         auto tree_down = new Tree(sf::Vector2f(-0.05, 0), texture_tree_down, sf::Vector2f(1, scale_down), 
-                                  sf::Vector2f(SIZE_X, 900), sf::Vector2f(50, 400));
+                                  sf::Vector2f(SIZE_X, 900), sf::Vector2f(54.5, 400));
         
-        if(trees.empty()) // || trees.back().get_object().getPosition().x < 700)
+        if(trees.empty()  || trees.back().get_object().getPosition().x < 700)
         {
             trees.push_back(*tree_down);
             trees.push_back(*tree_up);
