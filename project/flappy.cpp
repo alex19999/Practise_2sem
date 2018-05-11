@@ -58,6 +58,9 @@ class Tree : public Object
 
 class Bird : public Object
 {
+    private:
+        float passed_distance;
+
     public:
         Bird();
         Bird(const sf::Vector2f& vel, const sf::Texture& texture, const sf::Vector2f scale, 
@@ -68,9 +71,10 @@ class Bird : public Object
         
         void fly();
         void apply_force(sf::Time& time);
+        void distance(sf::Time& time);
+        float get_passed_distance { return passed_distance; }
         bool is_collision(std::vector<Tree>& trees);
 };
-
 
 class MovableBackground 
 {
@@ -141,17 +145,17 @@ void Tree::move()
     object.move(sf::Vector2f(velocity.x, 0));
 }
 
-void Bird::apply_force(sf::Time& time) 
+void Bird::apply_force(sf::Time& time)
 {
-    auto t = time.asSeconds();
-    velocity.y = G * t; 
-    object.move(0, velocity.y * t / 2);
+	auto t = time.asSeconds();
+	velocity.y = G * t;
+	object.move(0, velocity.y * t / 2);
 }
 
-void Bird::fly() 
+void Bird::fly()
 {
-    velocity.y = -15;
-    object.move(0, velocity.y * 1 / 2);
+	velocity.y = -15;
+	object.move(0, velocity.y * 1 / 2);
 }
 
 bool Bird::is_collision(std::vector<Tree>& trees)
@@ -176,7 +180,7 @@ bool Bird::is_collision(std::vector<Tree>& trees)
            tree_pos.x + tree_origin.x >= bird_pos.x - bird_origin.x)
         {
             // Столкновение либо с верхним деревом, либо с нижним соответственно
-            if(bird_pos.y + bird_origin.y <=  800 - real_size_y * tree_scale.y ||
+            if(bird_pos.y - bird_origin.y <= 800 - real_size_y * tree_scale.y ||
                bird_pos.y >= 900 - real_size_y * tree_scale.y)
             {
                 std::cout << "collision" << std::endl;
@@ -223,8 +227,9 @@ void delete_trees(std::vector<Tree>& trees)
 	{
         if (trees[iter].check())
 		{
-			trees[iter] = trees.back();
+		    trees[iter] = trees.back();
 			trees.pop_back();
+            std::cout << "done\n";
 		}
 		else
 			iter++;
@@ -251,14 +256,20 @@ void ExitGame(sf::RenderWindow& window) //clear
 	window.close();
 }
 
+bool ResetGame(sf::RenderWindow& window)
+{
+	return 1;
+}
+
+
 bool MouseCheck(sf::Sprite object, sf::Texture texture, sf::RenderWindow& window) // Pointer pos check
 {
-	return ((sf::Mouse::getPosition().x - window.getPosition().x > object.getPosition().x - object.getOrigin().x) &&
-		    (sf::Mouse::getPosition().x - window.getPosition().x < object.getPosition().x - object.getOrigin().x + 
+	return ((sf::Mouse::getPosition(window).x > object.getPosition().x) &&
+		    (sf::Mouse::getPosition(window).x < object.getPosition().x + 
              texture.getSize().x * object.getScale().x) &&
-		    (sf::Mouse::getPosition().y - window.getPosition().y < object.getPosition().y - object.getOrigin().y + 
+		    (sf::Mouse::getPosition(window).y < object.getPosition().y + 
              texture.getSize().y * object.getScale().y) &&
-		    (sf::Mouse::getPosition().y - window.getPosition().y > object.getPosition().y - object.getOrigin().y));
+		    (sf::Mouse::getPosition(window).y > object.getPosition().y));
 }
 
 void CreateTextButton(sf::Text& text, sf::Sprite object, sf::Texture texture, std::string s) //Text pos
@@ -270,7 +281,7 @@ void CreateTextButton(sf::Text& text, sf::Sprite object, sf::Texture texture, st
                      object.getPosition().y + texture.getSize().y / 2);
 }
 
-void DrawMenu(sf::RenderWindow& window)
+int DrawMenu(sf::RenderWindow& window)
 {
 
 	sf::Texture mapTexture; // Background
@@ -281,8 +292,8 @@ void DrawMenu(sf::RenderWindow& window)
 	background.setTexture(mapTexture);
 	background.setOrigin(mapTexture.getSize().x / 2, mapTexture.getSize().y / 2);
 	background.setPosition(window.getSize().x / 2, window.getSize().y / 2);
-	background.setScale(window.getSize().y * 1.0 / mapTexture.getSize().y, 
-                        window.getSize().y * 1.0 / mapTexture.getSize().y);
+	background.setScale(window.getSize().y * 1.0 / mapTexture.getSize().y,
+		window.getSize().y * 1.0 / mapTexture.getSize().y);
 
 	sf::Texture press_texture; //  swap if pointer
 	press_texture.loadFromFile("button_press.png");
@@ -291,17 +302,21 @@ void DrawMenu(sf::RenderWindow& window)
 	texture.loadFromFile("button.png");
 
 	sf::Sprite but_play(texture); // PLAY
-	but_play.setPosition(window.getSize().x / 2 - texture.getSize().x / 2, 
-                         window.getSize().y / 2 - 3 * texture.getSize().y);
+	but_play.setPosition(window.getSize().x / 2 - texture.getSize().x / 2,
+		window.getSize().y / 2 - 150);
 
 	sf::Sprite but_exit(texture); // EXIT
-	but_exit.setPosition(window.getSize().x / 2 - texture.getSize().x / 2, 
-                         window.getSize().y / 2 - texture.getSize().y);
+	but_exit.setPosition(window.getSize().x / 2 - texture.getSize().x / 2,
+		window.getSize().y / 2 + 30);
+
+	sf::Sprite but_restart(texture); // RESTART
+	but_restart.setPosition(window.getSize().x / 2 - texture.getSize().x / 2,
+		window.getSize().y / 2 - 60);
 
 	sf::Font font;// font
 	font.loadFromFile("11774.ttf");
 
-	sf::Text text_play("", font, 2 * texture.getSize().y / 3 ); // Create "PLAY"
+	sf::Text text_play("", font, 2 * texture.getSize().y / 3); // Create "PLAY"
 	text_play.setColor(sf::Color::White);
 	CreateTextButton(text_play, but_play, texture, "PLAY");
 
@@ -309,19 +324,25 @@ void DrawMenu(sf::RenderWindow& window)
 	text_exit.setColor(sf::Color::White);
 	CreateTextButton(text_exit, but_exit, texture, "EXIT");
 
+	sf::Text text_restart("", font, 2 * texture.getSize().y / 3); // Create "RESTART"
+	text_restart.setColor(sf::Color::White);
+	CreateTextButton(text_restart, but_restart, texture, "RESTART");
+
 	while (window.isOpen())
 	{
 
 		sf::Event event;
-
 		window.clear(sf::Color(100, 100, 100));
 		window.draw(background);
 		window.draw(but_exit);
 		window.draw(but_play);
+		window.draw(but_restart);
 		window.draw(text_play);
 		window.draw(text_exit);
+		window.draw(text_restart);
 		but_exit.setTexture(texture);
 		but_play.setTexture(texture);
+		but_restart.setTexture(texture);
 
 		if (MouseCheck(but_exit, press_texture, window)) // Mouse pos check
 		{
@@ -333,19 +354,29 @@ void DrawMenu(sf::RenderWindow& window)
 			but_play.setTexture(press_texture);
 		}
 
+		if (MouseCheck(but_restart, press_texture, window))
+		{
+			but_restart.setTexture(press_texture);
+		}
 
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) // LMB check
 		{
 			if (MouseCheck(but_play, press_texture, window))
 			{
 				PlayGame();
-				break;
+				return -1; // magic
 			}
 
 			if (MouseCheck(but_exit, press_texture, window))
 			{
 				ExitGame(window);
 				break;
+			}
+
+			if (MouseCheck(but_restart, press_texture, window))
+			{
+				ResetGame(window);
+				return 1;
 			}
 
 		}
@@ -366,107 +397,138 @@ void DrawMenu(sf::RenderWindow& window)
 			}
 		}
 
-
 		window.display();
 	}
 
 }
 
-int main() 
+bool StartGame() // just reset main() to this func
 {
-    sf::RenderWindow window(sf::VideoMode(SIZE_X, SIZE_Y), "My window");
-    sf::Texture texture_bird;
-    sf::Texture texture_tree_up;
-    sf::Texture texture_tree_down;
-    sf::Sprite background;
-    sf::Texture backtext;
-    MovableBackground bg;
-    sf::Event event;
-    sf::Clock clock;
-    sf::Time time;
+    int iter = 0;
+	sf::RenderWindow window(sf::VideoMode(SIZE_X, SIZE_Y), "My window");
+	sf::Texture texture_bird;
+	sf::Texture texture_tree_up;
+	sf::Texture texture_tree_down;
+	sf::Sprite background;
+	sf::Texture backtext;
+	MovableBackground bg;
+	sf::Event event;
     sf::Clock clock_game;
     sf::Time time_game;
-    std::vector<Tree> trees;
-    texture_bird.loadFromFile("Bird-32.png");
-    texture_tree_up.loadFromFile("tree_up.png");
-    texture_tree_down.loadFromFile("tree_down.png");
-    sf::View view2;
-    view2.setCenter(sf::Vector2f(500, 500));
-    view2.setSize(sf::Vector2f(1000, 1000));
+	sf::Clock clock;
+	sf::Time time;
+	sf::Clock clock_game;
+	sf::Time time_game;
+	std::vector<Tree> trees;
+    std::vector<float> distance_x;
+    std::vector<float> distance_y;
+	texture_bird.loadFromFile("Bird-32.png");
+	texture_tree_up.loadFromFile("tree_up.png");
+	texture_tree_down.loadFromFile("tree_down.png");
+	sf::View view2;
+	view2.setCenter(sf::Vector2f(500, 500));
+	view2.setSize(sf::Vector2f(1000, 1000));
 
-    auto bird = new Bird(sf::Vector2f(0, 0), texture_bird, sf::Vector2f(1, 1), 
-                         sf::Vector2f(SIZE_X / 2, SIZE_Y / 2), sf::Vector2f(16, 16));
-    while(window.isOpen()) 
-    {
-        auto scale_up = myrandom(0.5, 1.5);
-        auto scale_down = (900 - 100 - scale_up * 400) / 400;
-        auto tree_up = new Tree(sf::Vector2f(-0.1, 0), texture_tree_up, sf::Vector2f(1, scale_up), 
-                                sf::Vector2f(SIZE_X + border, 0), sf::Vector2f(54.5, 0));
-        auto tree_down = new Tree(sf::Vector2f(-0.1, 0), texture_tree_down, sf::Vector2f(1, scale_down), 
-                                  sf::Vector2f(SIZE_X + border, 900), sf::Vector2f(54.5, 400));
-        
-        if(trees.empty()  || trees.back().get_object().getPosition().x < 700)
+	auto bird = new Bird(sf::Vector2f(0, 0), texture_bird, sf::Vector2f(1, 1),
+		                 sf::Vector2f(SIZE_X / 2, SIZE_Y / 2), sf::Vector2f(16, 16));
+	while (window.isOpen())
+	{
+		auto scale_up = myrandom(0.5, 1.5);
+		auto scale_down = (900 - 100 - scale_up * 400) / 400;
+		auto tree_up = new Tree(sf::Vector2f(-0.1, 0), texture_tree_up, sf::Vector2f(1, scale_up),
+			                    sf::Vector2f(SIZE_X + border, 0), sf::Vector2f(54.5, 0));
+		auto tree_down = new Tree(sf::Vector2f(-0.1, 0), texture_tree_down, sf::Vector2f(1, scale_down),
+			                      sf::Vector2f(SIZE_X + border, 900), sf::Vector2f(54.5, 400));
+		if (trees.empty() || trees.front().get_object().getPosition().x < 700)
+		{
+            auto it = trees.begin();
+            trees.insert(it, *tree_up);
+            it = trees.begin();
+            trees.insert(it, *tree_down);
+		}
+        for(iter = 0; iter < trees.size(); iter++)
         {
-            trees.push_back(*tree_down);
-            trees.push_back(*tree_up);
-            std::cout << "size =" << trees.size() << "\n";
-        }
-        
-        bg.Render(window); 
-        bg.Update(window, speed * 10); 
-        
-        bird->draw(window);
-        draw_trees(trees, window);
-        time = clock.getElapsedTime();
-        bird->apply_force(time);
-        move_trees(trees);
-        
-        if(bird->is_collision(trees))
-        {
-            DrawMenu(window);
-            main();
-            clock.restart();
-        }
-
-        while(window.pollEvent(event)) 
-        {
-            switch(event.type) {
-                case sf::Event::Closed:
-                    window.close();
-                    break;
-                case sf::Event::KeyPressed:
-                    if(event.key.code == sf::Keyboard::Space)
-                    {
-                        bird->fly();
-                        clock.restart();
-                    }
-                    break;
-                case sf::Event::KeyReleased:
-                    if (event.key.code == sf::Keyboard::M)
-                    {
-                        DrawMenu(window);
-                        clock.restart();
-                    }
-                    break;
-                default:
-                    break;
+            auto x = trees[iter].get_object().getPosition().x - bird->get_object().getPosition().x;
+            if(x > 0)
+            {
+                std::cout << "x = " << x << std::endl;
+                std::cout << "iter = " << iter << std::endl;
+                distance_x.push_back(x);
+                break;
             }
         }
-    delete_trees(trees);
-    window.setView(view2);
-    window.display();
-    }
+
+		bg.Render(window);
+		bg.Update(window, speed * 10);
+
+		bird->draw(window);
+		draw_trees(trees, window);
+		time = clock.getElapsedTime();
+        time_game = clock_game.getElapsedTime();
+		bird->apply_force(time);
+		move_trees(trees);
+
+		if (bird->is_collision(trees))
+		{
+			return DrawMenu(window);
+		}
+
+		while (window.pollEvent(event))
+		{
+			switch (event.type) {
+			case sf::Event::Closed:
+				window.close();
+				break;
+			case sf::Event::KeyPressed:
+				if (event.key.code == sf::Keyboard::Space)
+				{
+					clock.restart();
+                    bird->fly();
+				}
+				break;
+			case sf::Event::KeyReleased:
+				if (event.key.code == sf::Keyboard::M)
+				{
+					DrawMenu(window);
+					clock.restart();
+				}
+				break;
+			default:
+				break;
+			}
+		}
+		delete_trees(trees);
+		window.setView(view2);
+		window.display();
+	}
 	return 0;
 }
 
-/* differential evolution
+void GameRunning() // if startgame==1 restart from very beginning, so function will kill old window 
+{
+	if (StartGame() > 0)
+	{
+		GameRunning();
+	}
+}
 
-float Bird::distance(const std::vector<Tree>& trees)
-{}
+int main()
+{
+	GameRunning();
+	return 0;
+}
+
+//differential evolution
+
+void Bird::distance(sf::Time time)
+{
+    auto t = time.asSeconds()
+    passed_distance = t * speed;
+}
 
 bool compare(const Bird& bird_1, const Bird& bird_2)
 {
-    return bird_1.distance() > bird_2.distance;
+    return bird_1.distance() > bird_2.distance();
 }
 
 
@@ -475,11 +537,13 @@ std::vector<Bird> generation()
     // Генерируем новую популяцию;
 };
 
-std::vector<Bird> otbor(const std::vector<Bird>& birds)
+std::vector<Bird> selection(const std::vector<Bird>& birds)
 {
     // Отбираем лучшие варианты;
     std::vector<Bird> best_birds;
-    // ...
+    std::sort(birds.begin(), birds.end(), compare);
+
+    return best_birds;
 }
 
 Bird skreschevanie(three birds)
