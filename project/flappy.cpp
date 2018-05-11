@@ -4,6 +4,7 @@
 #include<cstdio>
 #include<cstdlib>
 #include<list>
+#include<dlib/mlp.h>
 
 #define SIZE_X 1000
 #define SIZE_Y 1000
@@ -40,6 +41,8 @@ class Object
         sf::Vector2f get_scale()    { return object.getScale();    }
         sf::Vector2f get_origin()   { return object.getOrigin();   }
         void draw(sf::RenderWindow& window);
+        void move();
+        bool check(unsigned int line);
 };
 
 class Tree : public Object
@@ -51,28 +54,26 @@ class Tree : public Object
              Object(vel, texture, scale, position, origin)
         {};
         ~Tree(){};
-        
-        void move();
-        bool check();
 };
 
 class Bird : public Object
 {
     private:
         float passed_distance;
+        dlib::mlp::kernel_1a_c net;
 
     public:
         Bird();
         Bird(const sf::Vector2f& vel, const sf::Texture& texture, const sf::Vector2f scale, 
-             const sf::Vector2f position, const sf::Vector2f origin) : 
-             Object(vel, texture, scale, position, origin)
+             const sf::Vector2f position, const sf::Vector2f origin) :
+             net(2, 6), Object(vel, texture, scale, position, origin)
         {};
         ~Bird(){};
         
         void fly();
         void apply_force(sf::Time& time);
         void distance(sf::Time& time);
-        float get_passed_distance { return passed_distance; }
+        float get_passed_distance() { return passed_distance; }
         bool is_collision(std::vector<Tree>& trees);
 };
 
@@ -140,7 +141,7 @@ void Object::draw(sf::RenderWindow& window)
     window.draw(this->get_object());
 }
 
-void Tree::move() 
+void Object::move() 
 {
     object.move(sf::Vector2f(velocity.x, 0));
 }
@@ -190,48 +191,52 @@ bool Bird::is_collision(std::vector<Tree>& trees)
             return 0;
         }
     }
+    return 0;
 }
 
-bool Tree::check() 
+bool Object::check(unsigned int line) 
 {
     auto x_coord = object.getPosition().x + border;
-    if(x_coord < 0 || x_coord > SIZE_X + 2 * border)
+    if(x_coord < line || x_coord > SIZE_X + 2 * border)
         return true;
     return false;
 }
 
-void draw_trees(std::vector<Tree>& trees, sf::RenderWindow& window) 
+template <typename T>
+void draw_objects(std::vector<T>& objects, sf::RenderWindow& window) 
 {
-    if(trees.empty())
+    if(objects.empty())
         return;
-    for(auto& it : trees)
+    for(auto& it : objects)
         it.draw(window);
 }
 
-void move_trees(std::vector<Tree>& trees)
+template <typename T>
+void move_objects(std::vector<T>& objects)
 {
-    if(trees.empty())
+    if(objects.empty())
         return;
-    for(auto& it : trees)
+    for(auto& it : objects)
         it.move();
 }
 
-void delete_trees(std::vector<Tree>& trees)
+template <typename T>
+void delete_objects(std::vector<T>& objects, unsigned int line)
 {
     int iter = 0;
     
-    if(trees.empty())
+    if(objects.empty())
         return;
     
-	while (iter < trees.size())
+	while (iter < objects.size())
 	{
-        if (trees[iter].check())
+        if (objects[iter].check(line))
 		{
-		    trees[iter] = trees.back();
-			trees.pop_back();
-            std::cout << "done\n";
+		    objects[iter] = objects.back();
+			objects.pop_back();
 		}
-		else
+		
+        else
 			iter++;
     }
 }
@@ -260,7 +265,6 @@ bool ResetGame(sf::RenderWindow& window)
 {
 	return 1;
 }
-
 
 bool MouseCheck(sf::Sprite object, sf::Texture texture, sf::RenderWindow& window) // Pointer pos check
 {
@@ -409,22 +413,23 @@ bool StartGame() // just reset main() to this func
 	sf::Texture texture_bird;
 	sf::Texture texture_tree_up;
 	sf::Texture texture_tree_down;
+    sf::Texture texture_point;
 	sf::Sprite background;
 	sf::Texture backtext;
 	MovableBackground bg;
 	sf::Event event;
-    sf::Clock clock_game;
-    sf::Time time_game;
 	sf::Clock clock;
 	sf::Time time;
 	sf::Clock clock_game;
 	sf::Time time_game;
 	std::vector<Tree> trees;
+    std::vector<Object> points;
     std::vector<float> distance_x;
     std::vector<float> distance_y;
 	texture_bird.loadFromFile("Bird-32.png");
 	texture_tree_up.loadFromFile("tree_up.png");
 	texture_tree_down.loadFromFile("tree_down.png");
+    texture_point.loadFromFile("img_target.png");
 	sf::View view2;
 	view2.setCenter(sf::Vector2f(500, 500));
 	view2.setSize(sf::Vector2f(1000, 1000));
@@ -435,38 +440,35 @@ bool StartGame() // just reset main() to this func
 	{
 		auto scale_up = myrandom(0.5, 1.5);
 		auto scale_down = (900 - 100 - scale_up * 400) / 400;
-		auto tree_up = new Tree(sf::Vector2f(-0.1, 0), texture_tree_up, sf::Vector2f(1, scale_up),
-			                    sf::Vector2f(SIZE_X + border, 0), sf::Vector2f(54.5, 0));
-		auto tree_down = new Tree(sf::Vector2f(-0.1, 0), texture_tree_down, sf::Vector2f(1, scale_down),
-			                      sf::Vector2f(SIZE_X + border, 900), sf::Vector2f(54.5, 400));
-		if (trees.empty() || trees.front().get_object().getPosition().x < 700)
+		
+        if (trees.empty() || trees.front().get_object().getPosition().x < 700)
 		{
+            auto tree_up = new Tree(sf::Vector2f(-0.1, 0), texture_tree_up, sf::Vector2f(1, scale_up),
+                                    sf::Vector2f(SIZE_X + border, 0), sf::Vector2f(54.5, 0));
+            auto tree_down = new Tree(sf::Vector2f(-0.1, 0), texture_tree_down, sf::Vector2f(1, scale_down), 
+                                      sf::Vector2f(SIZE_X + border, 900), sf::Vector2f(54.5, 400));
+            auto point = new Object(sf::Vector2f(-0.1, 0), texture_point, sf::Vector2f(1, 1),
+                                    sf::Vector2f(tree_up->get_object().getPosition().x, real_size_y * scale_up + 50),
+                                    sf::Vector2f(5, 5));   
             auto it = trees.begin();
             trees.insert(it, *tree_up);
             it = trees.begin();
             trees.insert(it, *tree_down);
+            auto begin = points.begin();
+            points.insert(begin, *point);
 		}
-        for(iter = 0; iter < trees.size(); iter++)
-        {
-            auto x = trees[iter].get_object().getPosition().x - bird->get_object().getPosition().x;
-            if(x > 0)
-            {
-                std::cout << "x = " << x << std::endl;
-                std::cout << "iter = " << iter << std::endl;
-                distance_x.push_back(x);
-                break;
-            }
-        }
-
-		bg.Render(window);
+		
+        bg.Render(window);
 		bg.Update(window, speed * 10);
 
 		bird->draw(window);
-		draw_trees(trees, window);
+		draw_objects(trees, window);
+        draw_objects(points, window);
 		time = clock.getElapsedTime();
         time_game = clock_game.getElapsedTime();
 		bird->apply_force(time);
-		move_trees(trees);
+		move_objects(trees);
+        move_objects(points);
 
 		if (bird->is_collision(trees))
 		{
@@ -497,7 +499,8 @@ bool StartGame() // just reset main() to this func
 				break;
 			}
 		}
-		delete_trees(trees);
+		delete_objects(trees, 0);
+        delete_objects(points, 548);
 		window.setView(view2);
 		window.display();
 	}
@@ -512,13 +515,25 @@ void GameRunning() // if startgame==1 restart from very beginning, so function w
 	}
 }
 
+// differential evolution part
+void Bird::distance(sf::Time time)
+{
+    auto t = time.asSeconds();
+    passed_distance = t * speed;
+}
+
+bool compare(const Bird& bird_1, const Bird& bird_2)
+{    
+    return bird_1.distance() > bird_2.distance();
+}   
+
 int main()
 {
 	GameRunning();
 	return 0;
 }
 
-//differential evolution
+/*differential evolution
 
 void Bird::distance(sf::Time time)
 {
