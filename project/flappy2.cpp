@@ -12,7 +12,8 @@
 #define GAP    100
 #define speed  0.01 * 1.5
 #define MAX_VEL 300
-#define BIRD_ACCEL -1500/1.5
+#define BIRD_ACCEL -1500/10
+#define BIRD_NUM 10
 
 #define real_size_x 109
 #define real_size_y 400
@@ -27,8 +28,8 @@ public:
 	// c-tor and d-tor
 	Object();
 	Object(const sf::Vector2f& vel, const sf::Texture& texture, const sf::Vector2f scale,
-		const sf::Vector2f position, const sf::Vector2f origin) :
-		velocity(vel), object(texture)
+		   const sf::Vector2f position, const sf::Vector2f origin) :
+		   velocity(vel), object(texture)
 	{
 		object.setOrigin(origin.x, origin.y);
 		object.scale(scale.x, scale.y);
@@ -37,11 +38,12 @@ public:
 	~Object() {};
 
 	// methods
-	sf::Vector2f get_velocity() { return velocity; }
-	sf::Sprite get_object() { return object; }
-	sf::Vector2f get_position() { return object.getPosition(); }
-	sf::Vector2f get_scale() { return object.getScale(); }
-	sf::Vector2f get_origin() { return object.getOrigin(); }
+	sf::Vector2f get_velocity() const     { return velocity;             }
+	sf::Sprite get_object()     const     { return object;               }
+	sf::Vector2f get_position() const     { return object.getPosition(); }
+	sf::Vector2f get_scale()    const     { return object.getScale();    }
+	sf::Vector2f get_origin()   const     { return object.getOrigin();   }
+    void set_position(const sf::Vector2f position) { object.setPosition(position); }
 	void draw(sf::RenderWindow& window);
     void move();
     bool check(unsigned int line);
@@ -52,8 +54,8 @@ class Tree : public Object
 public:
 	Tree();
 	Tree(const sf::Vector2f& vel, const sf::Texture& texture, sf::Vector2f scale,
-		const sf::Vector2f position, const sf::Vector2f origin) :
-		Object(vel, texture, scale, position, origin)
+		 const sf::Vector2f position, const sf::Vector2f origin) :
+		 Object(vel, texture, scale, position, origin)
 	{};
 	~Tree() {};
 
@@ -63,28 +65,58 @@ class Bird : public Object
 {
 private:
     float passed_distance;
-    float distance_to_gap;
+    float distance_to_gap_x;
+    float distance_to_gap_y;
     float accel;
     bool is_dead = false;
+    float weight_x = 0.01;
+    float weight_y = 0.01;
+    float weight_vel = 0.01;
+    bool ready_to_fly = false;
 public:
 	Bird();
 	Bird(const sf::Vector2f& vel, const sf::Texture& texture, const sf::Vector2f scale,
-		const sf::Vector2f position, const sf::Vector2f origin) :
-		Object(vel, texture, scale, position, origin)
+		 const sf::Vector2f position, const sf::Vector2f origin, const sf::Vector3f weight) :
+		 Object(vel, texture, scale, position, origin)
 	{
 		accel = 0;
+        weight_x = weight.x;
+        weight_y = weight.y;
+        weight_vel = weight.z;
 	};
+    Bird(const Bird& bird): Object(bird.get_velocity(), *bird.get_object().getTexture(), 
+                                   bird.get_scale(), bird.get_position(), bird.get_origin())
+    {
+        accel = 0;
+        passed_distance = bird.get_passed_distance();
+        weight_x = bird.get_weight_x();
+        weight_y = bird.get_weight_y();
+        weight_vel = bird.get_weight_vel();
+    };
+
 	~Bird() {};
-
+    
+    Bird operator-(const Bird& other) const;
+    Bird operator+(const Bird& other) const;
 	bool flag;
-
 	void fly();
-        void set_flag(bool flag_) { flag = flag_; } 
+    void set_flag(bool flag_) { flag = flag_; } 
 	void apply_force(sf::Time& time);
-	void distance(sf::Time& time);
-	float get_passed_distance() { return passed_distance; }
+	void set_passed_distance(float distance) { passed_distance = distance; }
+    void distance_to_gap(Object& point);
+    float get_distance_to_gap_x() const { return distance_to_gap_x; }
+    float get_distance_to_gap_y() const { return distance_to_gap_y; }
+	float get_passed_distance()   const { return passed_distance;   }
+    float get_weight_x()          const { return weight_x;          }
+    float get_weight_y()          const { return weight_y;          }
+    float get_weight_vel()        const { return weight_vel;        }
 	void is_collision(Object& point);
-        bool get_is_dead() { return is_dead; }
+    bool get_is_dead() const { return is_dead; }
+    void predict();
+    bool is_fly() const { return ready_to_fly; }
+    void set_weight_x(float w_x) { weight_x = w_x; }
+    void set_weight_y(float w_y) { weight_y = w_y; }
+    void set_weight_vel(float w_vel) { weight_vel = w_vel; }
 };
 
 class MovableBackground
@@ -202,6 +234,14 @@ bool Object::check(unsigned int line)
 	return false;
 }
 
+void Bird::distance_to_gap(Object& point)
+{
+    distance_to_gap_x = point.get_position().x - point.get_origin().x - 
+                        get_position().x + get_origin().x;
+    distance_to_gap_y = point.get_position().y - get_position().y;
+}
+
+
 template <typename T> 
 void draw_objects(std::vector<T>& objects, sf::RenderWindow& window)
 {
@@ -271,10 +311,11 @@ void trees_and_targets(std::vector<Tree>& trees, std::vector<Object>& points, st
 void first_birds(std::list<Bird>& birds, sf::Texture& texture_bird)
 {
     int count = 0;
-    for(count = 0; count < 10; count++)
+    for(count = 0; count < BIRD_NUM; count++)
     {
         auto bird = std::make_unique<Bird>(sf::Vector2f(0, 0), texture_bird, sf::Vector2f(1, 1),
-                    sf::Vector2f(SIZE_X / 2, 900 - 50 * (count + 1)), sf::Vector2f(16, 16));
+                    sf::Vector2f(SIZE_X / 2, 900 - 50 * (count + 1)), sf::Vector2f(16, 16),
+                    sf::Vector3f(myrandom(0, 1), myrandom(0, 1), myrandom(0, 1)));
         birds.push_back(*bird);
     }
 }
@@ -324,9 +365,63 @@ bool dead(Bird& bird)
     return false;
 }
 
-void delete_birds(std::list<Bird>& birds)
+void delete_birds(std::list<Bird>& birds, std::vector<Bird>& new_birds)
 {
+    if(birds.size() <= 4)
+        for(auto& bird : birds)
+            if(bird.get_is_dead())
+                new_birds.insert(new_birds.begin(), bird);
+        
     birds.remove_if(dead);
+}
+
+void distance_to_gap_birds(std::list<Bird>& birds, Object& point)
+{
+    if(birds.empty())
+        return;
+    for(auto& it : birds)
+        it.distance_to_gap(point);
+}
+
+void Bird::predict()
+{
+    auto weight_sum = distance_to_gap_x * weight_x + distance_to_gap_y * weight_y 
+                      + get_velocity().y * weight_vel;
+    auto predict =  1 / (1 + exp(weight_sum));
+
+    if(predict > 0.3)
+        ready_to_fly = true;
+    else
+        ready_to_fly = false;
+}
+
+void predict(std::list<Bird>& birds)
+{
+    if(birds.empty())
+        return;
+    for(auto& it : birds)
+        it.predict();
+}
+
+void show_weights(std::list<Bird>& birds)
+{
+    if(birds.empty())
+        return;
+    for(auto& bird : birds)
+    {
+        std::cout << "weight_x = " << bird.get_weight_x() << std::endl;
+        std::cout << "weight_y = " << bird.get_weight_y() << std::endl;
+        std::cout << "weight_vel = " << bird.get_weight_vel() << std::endl;
+    }
+}
+
+void self_fly_birds(std::list<Bird>& birds)
+{
+    if(birds.empty())
+        return;
+    for(auto& it : birds)
+        if(it.is_fly())
+            it.fly();
 }
 
 void WindowInitialize(sf::RenderWindow& window) // window set
@@ -489,6 +584,62 @@ int DrawMenu(sf::RenderWindow& window)
 
 }
 
+//differential evolution
+void distance_birds(std::list<Bird>& birds, sf::Time& time)
+{
+    if(birds.empty())
+        return;
+    auto t = time.asSeconds();
+    for(auto& it : birds)
+        it.set_passed_distance(t * speed);
+}
+
+bool compare(Bird& bird_1, Bird& bird_2)
+{
+    return bird_1.get_passed_distance() > bird_2.get_passed_distance();
+}
+
+Bird Bird::operator-(const Bird& other) const 
+{
+    auto bird(other);
+    bird.set_weight_x(weight_x - other.get_weight_x());
+    bird.set_weight_y(weight_y - other.get_weight_y());
+    bird.set_weight_vel(weight_vel - other.get_weight_vel());
+    return bird;
+}
+
+Bird Bird::operator+(const Bird& other) const
+{
+    auto bird(other);
+    bird.set_weight_x(weight_x + other.get_weight_x());
+    bird.set_weight_y(weight_y + other.get_weight_y());
+    bird.set_weight_vel(weight_vel + other.get_weight_vel());
+    return bird;
+}
+
+void new_generation(std::vector<Bird>& best_birds, std::list<Bird>& birds)
+{
+    // generate new birds
+    best_birds.push_back(best_birds[2] + (best_birds[0] - best_birds[1]));
+    best_birds.push_back(best_birds[3] + (best_birds[0] - best_birds[1]));
+    best_birds.push_back(best_birds[0] + (best_birds[1] - best_birds[2]));
+    best_birds.push_back(best_birds[3] + (best_birds[1] - best_birds[2]));
+    best_birds.push_back(best_birds[0] + (best_birds[2] - best_birds[3]));
+    best_birds.push_back(best_birds[2] + (best_birds[3] - best_birds[0]));
+    
+    for(auto& it : best_birds)
+        birds.push_back(it);
+    std::cout << "size = " << birds.size() << std::endl;
+}
+
+void restart_game(std::list<Bird>& birds)
+{
+    if(birds.empty())
+        return;
+    for(auto& bird : birds)
+        bird.set_position(sf::Vector2f(SIZE_X / 2, SIZE_Y / 2));
+}
+
 bool StartGame() // just reset main() to this func
 {
 	int iter = 0;
@@ -508,9 +659,9 @@ bool StartGame() // just reset main() to this func
 	sf::Time time_pisos;
 	std::vector<Tree> trees;
     std::list<Bird> birds;
+    std::vector<Bird> best_birds;
     std::vector<Object> points;
-	std::vector<float> distance_x;
-	std::vector<float> distance_y;
+    std::vector<float> distance;
 	texture_bird.loadFromFile("Bird-32.png");
 	barriers_textures[0].loadFromFile("tree_up.png");
     barriers_textures[1].loadFromFile("tree_down.png");
@@ -537,11 +688,26 @@ bool StartGame() // just reset main() to this func
 		move_objects(trees);
         move_objects(points);
 
-		if (birds.empty())
+        if(static_cast<int>(time_game.asSeconds()) % 2 == 0)
         {
-            return DrawMenu(window); 
+            distance_to_gap_birds(birds, points.back());
+            predict(birds);
+            self_fly_birds(birds);
+            
         }
-
+        
+        if (birds.empty())
+        {
+            new_generation(best_birds, birds);
+            restart_game(birds);
+            trees.clear();
+            points.clear();
+            best_birds.clear();
+            clock_game.restart();
+            show_weights(birds);
+            //return DrawMenu(window); 
+        }
+        
 		while (window.pollEvent(event))
 		{
 			switch (event.type) {
@@ -571,10 +737,11 @@ bool StartGame() // just reset main() to this func
 				break;
 			}
 		}
+        distance_birds(birds, time_game);
 		delete_objects(trees, 0);
         delete_objects(points, 548);
         check_collisions(birds, points.back());
-        delete_birds(birds);
+        delete_birds(birds, best_birds);
 		window.setView(view2);
 		window.display();
 	}
