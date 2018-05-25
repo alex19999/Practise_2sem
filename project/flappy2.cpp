@@ -15,6 +15,9 @@
 #define BIRD_ACCEL -1500 / 7
 #define BIRD_NUM 10
 
+#define HIDDEN_SIZE 3
+#define PARAM_NUM   3
+
 #define real_size_x 109
 #define real_size_y 400
 
@@ -69,30 +72,24 @@ private:
     float distance_to_gap_y;
     float accel;
     bool is_dead = false;
-    float weight_x = 0.01;
-    float weight_y = 0.01;
-    float weight_vel = 0.01;
     bool ready_to_fly = false;
+    std::vector<std::vector<float>> weights{{}, {}, {}};
+    float weight_x;
+    float weight_y;
+    float weight_vel;
 public:
 	Bird();
-	Bird(const sf::Vector2f& vel, const sf::Texture& texture, const sf::Vector2f scale,
-		 const sf::Vector2f position, const sf::Vector2f origin, const sf::Vector3f weight) :
-		 Object(vel, texture, scale, position, origin)
+	Bird(const sf::Vector2f& vel, const sf::Texture& texture, const sf::Vector2f& scale,const sf::Vector2f& position, 
+         const sf::Vector2f& origin, const sf::Vector3f& weights_1, const std::vector<std::vector<float>>& w) :
+		 Object(vel, texture, scale, position, origin), weights(w)
 	{
+        //weights.resize(HIDDEN_SIZE);
+        int iter = 0;
 		accel = 0;
-        weight_x = weight.x;
-        weight_y = weight.y;
-        weight_vel = weight.z;
+        weight_x = weights_1.x;
+        weight_y = weights_1.y;
+        weight_vel = weights_1.z;
 	};
-    Bird(const Bird& bird): Object(bird.get_velocity(), *bird.get_object().getTexture(), 
-                                   bird.get_scale(), bird.get_position(), bird.get_origin())
-    {
-        accel = 0;
-        passed_distance = bird.get_passed_distance();
-        weight_x = bird.get_weight_x();
-        weight_y = bird.get_weight_y();
-        weight_vel = bird.get_weight_vel();
-    };
 
 	~Bird() {};
     
@@ -111,6 +108,8 @@ public:
     float get_weight_x()          const { return weight_x;          }
     float get_weight_y()          const { return weight_y;          }
     float get_weight_vel()        const { return weight_vel;        }
+    sf::Vector3f get_weights_1()  const { return sf::Vector3f(weight_x, weight_y, weight_vel); }
+    std::vector<std::vector<float>> get_weights_2() const { return weights; }
 	void is_collision(Object& point);
     bool get_is_dead() const { return is_dead; }
     void predict();
@@ -118,7 +117,13 @@ public:
     void set_weight_x(float w_x) { weight_x = w_x; }
     void set_weight_y(float w_y) { weight_y = w_y; }
     void set_weight_vel(float w_vel) { weight_vel = w_vel; }
+    void set_neural_weights(std::vector<std::vector<float>>& weights);
 };
+
+void Bird::set_neural_weights(std::vector<std::vector<float>>& weights)
+{
+    weights = weights;
+}
 
 class MovableBackground
 {
@@ -312,11 +317,27 @@ void trees_and_targets(std::vector<Tree>& trees, std::vector<Object>& points, st
 void first_birds(std::list<Bird>& birds, sf::Texture& texture_bird)
 {
     int count = 0;
+    int iter = 0;
+    int i = 0;
+    std::vector<std::vector<float>> hidden_weights;
+    hidden_weights.resize(HIDDEN_SIZE);
+    
     for(count = 0; count < BIRD_NUM; count++)
     {
+        for(i = 0; i < HIDDEN_SIZE; i++)
+        {
+            while(iter < PARAM_NUM)
+            {
+                hidden_weights[i].push_back(myrandom(0.01, 0.5));
+                iter++;
+            }
+            for(auto& it : hidden_weights[i])
+                std::cout << i << ":" << "weight = " << it << std::endl;
+            iter = 0;
+        }
         auto bird = std::make_unique<Bird>(sf::Vector2f(0, 0), texture_bird, sf::Vector2f(1, 1),
                     sf::Vector2f(SIZE_X / 2, 900 - 50 * (count + 1)), sf::Vector2f(16, 16),
-                    sf::Vector3f(myrandom(0, 1), myrandom(0, 1), myrandom(0, 1)));
+                    sf::Vector3f(myrandom(0, 1), myrandom(0, 1), myrandom(0, 1)), hidden_weights);
         birds.push_back(*bird);
     }
 }
@@ -386,10 +407,27 @@ void distance_to_gap_birds(std::list<Bird>& birds, Object& point)
 
 void Bird::predict()
 {
-    auto weight_sum = distance_to_gap_x * weight_x + distance_to_gap_y * weight_y 
-                      + get_velocity().y * weight_vel;
-    auto predict =  1 / (1 + exp(weight_sum));
+    std::vector<float> features { distance_to_gap_x, distance_to_gap_y, get_velocity().y };
+    std::vector<float> predicts;
+    int sum = 0;
+    int iter = 0;
+    for(auto& neuron : weights)
+    {
+        while(iter < features.size())
+        {
+            sum = sum + neuron[iter] * features[iter];
+            iter++;
+        }
+        iter = 0;
+        predicts.push_back(1 / (1 + exp(sum)));
+    }
+    //for(auto& it : predicts)
+    //    std::cout << "pred = " << it << std::endl;
+ 
 
+    auto w_sum = predicts[0] * weight_x + predicts[1] * weight_y + predicts[2] * weight_vel;
+    auto predict = w_sum / HIDDEN_SIZE; 
+    //std::cout << "predict = " << predict << std::endl;
     if(predict > 0.3)
         ready_to_fly = true;
     else
@@ -444,7 +482,6 @@ bool ResetGame(sf::RenderWindow& window)
 {
 	return 1;
 }
-
 
 bool MouseCheck(sf::Sprite object, sf::Texture texture, sf::RenderWindow& window) // Pointer pos check
 {
@@ -618,25 +655,30 @@ void distance_birds(std::list<Bird>& birds, sf::Time& time)
 
 Bird Bird::operator-(const Bird& other) const 
 {
-    auto bird(other);
-    bird.set_weight_x(weight_x - other.get_weight_x());
-    bird.set_weight_y(weight_y - other.get_weight_y());
-    bird.set_weight_vel(weight_vel - other.get_weight_vel());
-    return bird;
+    auto bird = std::make_unique<Bird>(get_velocity(), *other.get_object().getTexture(), 
+                                 get_scale(), get_position(), get_origin(), 
+                                 get_weights_1(), get_weights_2());
+
+    bird->set_weight_x(weight_x - other.get_weight_x());
+    bird->set_weight_y(weight_y - other.get_weight_y());
+    bird->set_weight_vel(weight_vel - other.get_weight_vel());
+    return *bird;
 }
 
 Bird Bird::operator+(const Bird& other) const
 {
-    auto bird(other);
-    bird.set_weight_x(weight_x + other.get_weight_x());
-    bird.set_weight_y(weight_y + other.get_weight_y());
-    bird.set_weight_vel(weight_vel + other.get_weight_vel());
-    return bird;
+    auto bird = std::make_unique<Bird>(get_velocity(), *other.get_object().getTexture(),    
+                                 get_scale(), get_position(), get_origin(),
+                                 get_weights_1(), get_weights_2());
+    bird->set_weight_x(weight_x + other.get_weight_x());
+    bird->set_weight_y(weight_y + other.get_weight_y());
+    bird->set_weight_vel(weight_vel + other.get_weight_vel());
+    return *bird;
 }
 
 Bird crossing(const Bird& b_1, const Bird& b_2, const Bird& b_3) 
 {
-    return Bird(b_1 + (b_2 - b_3));
+    return b_1 + (b_2 - b_3);
 }
 
 Bird& Bird::mutation(Bird& other)
@@ -653,12 +695,14 @@ Bird& Bird::mutation(Bird& other)
 void new_generation(std::vector<Bird>& best_birds, std::list<Bird>& birds)
 {
     // generate new birds
+    std::cout << "govno\n";
     best_birds.push_back(crossing(best_birds[2], best_birds[0], best_birds[1]).mutation(best_birds[3]));
     best_birds.push_back(crossing(best_birds[3], best_birds[0], best_birds[1]).mutation(best_birds[2]));
     best_birds.push_back(crossing(best_birds[0], best_birds[1], best_birds[2]).mutation(best_birds[0]));
     best_birds.push_back(crossing(best_birds[3], best_birds[1], best_birds[2]).mutation(best_birds[0]));
     best_birds.push_back(crossing(best_birds[0], best_birds[2], best_birds[3]).mutation(best_birds[1]));
     best_birds.push_back(crossing(best_birds[2], best_birds[3], best_birds[0]).mutation(best_birds[1]));
+    std::cout << "fedya pidor\n";
     
     for(auto& it : best_birds)
         birds.push_back(it);
@@ -725,13 +769,16 @@ void Learning(std::list<Bird>& birds, std::vector<Bird>& best_birds, std::vector
         
     if (birds.empty())
     {
-            new_generation(best_birds, birds);
-            restart_game(birds);
-            trees.clear();
-            points.clear();
-            best_birds.clear();
-            clock_game.restart();
-            show_weights(birds);
+        std::cout << "before\n";
+        std::cout << "best_birds.size = " << best_birds.size() << std::endl;
+        new_generation(best_birds, birds);
+        std::cout << "after\n";
+        restart_game(birds);
+        trees.clear();
+        points.clear();
+        best_birds.clear();
+        clock_game.restart();
+        show_weights(birds);
     }
 }
 
@@ -784,7 +831,6 @@ bool StartGame() // just reset main() to this func
 		apply_force_birds(birds, time_pisos);
 		move_objects(trees);
         move_objects(points);
-
         if(!blocked)
             Learning(birds, best_birds, trees, points, clock_game, time_game);
         GamePlay(window, birds, clock, blocked);
@@ -813,4 +859,3 @@ int main()
 	GameRunning();
 	return 0;
 }
-
