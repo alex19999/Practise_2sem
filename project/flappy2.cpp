@@ -7,12 +7,12 @@
 
 #define SIZE_X 1000
 #define SIZE_Y 1000
-#define G      2000 / 1.5
+#define G      2000 / 7
 #define border 50
-#define GAP    100
+#define GAP    200
 #define speed  0.01 * 1.5
 #define MAX_VEL 300
-#define BIRD_ACCEL -1500/10
+#define BIRD_ACCEL -1500 / 7
 #define BIRD_NUM 10
 
 #define real_size_x 109
@@ -98,6 +98,7 @@ public:
     
     Bird operator-(const Bird& other) const;
     Bird operator+(const Bird& other) const;
+    Bird& mutation (Bird& other);
 	bool flag;
 	void fly();
     void set_flag(bool flag_) { flag = flag_; } 
@@ -210,16 +211,13 @@ void Bird::is_collision(Object& point)
 
     // Столкновения с землей и вылет за карту
     if(bird_pos.y >= 900 || bird_pos.y <= 0)
-    {
         is_dead = true;
-        std::cout << "out of the map" << std::endl;
-    }
     
     if(point_pos.x - real_size_x / 2 <= bird_pos.x + bird_origin.x &&
        point_pos.x + real_size_x / 2 >= bird_pos.x - bird_origin.x) 
     {
-        if(bird_pos.y - bird_origin.y <= point_pos.y - border ||
-           bird_pos.y + bird_origin.y >= point_pos.y + border)
+        if(bird_pos.y - bird_origin.y <= point_pos.y - GAP / 2 ||
+           bird_pos.y + bird_origin.y >= point_pos.y + GAP / 2)
         {
             is_dead = true;
         }
@@ -237,8 +235,11 @@ bool Object::check(unsigned int line)
 void Bird::distance_to_gap(Object& point)
 {
     distance_to_gap_x = point.get_position().x - point.get_origin().x - 
-                        get_position().x + get_origin().x;
-    distance_to_gap_y = point.get_position().y - get_position().y;
+                        get_position().x - get_origin().x;
+    if(get_position().y > point.get_position().y)
+        distance_to_gap_y = point.get_position().y - get_position().y + get_origin().y;
+    else 
+        distance_to_gap_y = point.get_position().y - get_position().y - get_origin().y;
 }
 
 
@@ -299,7 +300,7 @@ void trees_and_targets(std::vector<Tree>& trees, std::vector<Object>& points, st
         auto tree_down = std::make_unique<Tree>(sf::Vector2f(-0.05, 0), textures[1], sf::Vector2f(1, scale_down),
                                   sf::Vector2f(SIZE_X + border, 900), sf::Vector2f(54.5, 400));
         auto point = std::make_unique<Object>(sf::Vector2f(-0.05, 0), textures[2], sf::Vector2f(1, 1),
-                                sf::Vector2f(SIZE_X + border, real_size_y * scale_up + 50), sf::Vector2f(5, 5));
+                                sf::Vector2f(SIZE_X + border, real_size_y * scale_up + GAP / 2), sf::Vector2f(5, 5));
         // push them into vector
         trees.insert(trees.begin(), *tree_up);
         trees.insert(trees.begin(), *tree_down);
@@ -486,14 +487,18 @@ int DrawMenu(sf::RenderWindow& window)
 	sf::Sprite but_play(texture); // PLAY
 	but_play.setPosition(window.getSize().x / 2 - texture.getSize().x / 2,
 		window.getSize().y / 2 - 150);
+        
+    sf::Sprite but_sim(texture); // SIMULATION
+	but_sim.setPosition(window.getSize().x / 2 - texture.getSize().x / 2,
+		window.getSize().y / 2 - 90);
 
 	sf::Sprite but_exit(texture); // EXIT
 	but_exit.setPosition(window.getSize().x / 2 - texture.getSize().x / 2,
-		window.getSize().y / 2 + 30);
+		window.getSize().y / 2 + 60);
 
 	sf::Sprite but_restart(texture); // RESTART
 	but_restart.setPosition(window.getSize().x / 2 - texture.getSize().x / 2,
-		window.getSize().y / 2 - 60);
+		window.getSize().y / 2 - 30);
 
 	sf::Font font;// font
 	font.loadFromFile("11774.ttf");
@@ -501,6 +506,10 @@ int DrawMenu(sf::RenderWindow& window)
 	sf::Text text_play("", font, 2 * texture.getSize().y / 3); // Create "PLAY"
 	text_play.setColor(sf::Color::White);
 	CreateTextButton(text_play, but_play, texture, "PLAY");
+        
+    sf::Text text_sim("", font, 2 * texture.getSize().y / 3); // Create "SIMULATION"
+	text_sim.setColor(sf::Color::White);
+	CreateTextButton(text_sim, but_sim, texture, "LEARNING");
 
 	sf::Text text_exit("", font, 2 * texture.getSize().y / 3); // Create "EXIT"
 	text_exit.setColor(sf::Color::White);
@@ -518,13 +527,16 @@ int DrawMenu(sf::RenderWindow& window)
 		window.draw(background);
 		window.draw(but_exit);
 		window.draw(but_play);
+        window.draw(but_sim);
 		window.draw(but_restart);
 		window.draw(text_play);
+        window.draw(text_sim);
 		window.draw(text_exit);
 		window.draw(text_restart);
 		but_exit.setTexture(texture);
 		but_play.setTexture(texture);
 		but_restart.setTexture(texture);
+                but_sim.setTexture(texture);
 
 		if (MouseCheck(but_exit, press_texture, window)) // Mouse pos check
 		{
@@ -534,6 +546,11 @@ int DrawMenu(sf::RenderWindow& window)
 		if (MouseCheck(but_play, press_texture, window))
 		{
 			but_play.setTexture(press_texture);
+		}
+
+        if (MouseCheck(but_sim, press_texture, window))
+		{
+			but_sim.setTexture(press_texture);
 		}
 
 		if (MouseCheck(but_restart, press_texture, window))
@@ -548,6 +565,11 @@ int DrawMenu(sf::RenderWindow& window)
 				PlayGame();
 				return -1; // magic
 			}
+
+            if (MouseCheck(but_sim, press_texture, window))
+            {
+                return -2;
+            }
 
 			if (MouseCheck(but_exit, press_texture, window))
 			{
@@ -573,9 +595,9 @@ int DrawMenu(sf::RenderWindow& window)
 		{
 			switch (event.type)
 			{
-			case sf::Event::Closed:
-				window.close();
-				break;
+			    case sf::Event::Closed:
+				    window.close();
+				    break;
 			}
 		}
 
@@ -592,11 +614,6 @@ void distance_birds(std::list<Bird>& birds, sf::Time& time)
     auto t = time.asSeconds();
     for(auto& it : birds)
         it.set_passed_distance(t * speed);
-}
-
-bool compare(Bird& bird_1, Bird& bird_2)
-{
-    return bird_1.get_passed_distance() > bird_2.get_passed_distance();
 }
 
 Bird Bird::operator-(const Bird& other) const 
@@ -617,19 +634,34 @@ Bird Bird::operator+(const Bird& other) const
     return bird;
 }
 
+Bird crossing(const Bird& b_1, const Bird& b_2, const Bird& b_3) 
+{
+    return Bird(b_1 + (b_2 - b_3));
+}
+
+Bird& Bird::mutation(Bird& other)
+{
+    if(myrandom(0, 1) > 0.5)
+        set_weight_x(other.get_weight_x());
+    if(myrandom(0, 1) > 0.5)
+        set_weight_y(other.get_weight_y());
+    if(myrandom(0, 1) > 0.5)
+        set_weight_vel(other.get_weight_vel());
+    return *this;
+}
+
 void new_generation(std::vector<Bird>& best_birds, std::list<Bird>& birds)
 {
     // generate new birds
-    best_birds.push_back(best_birds[2] + (best_birds[0] - best_birds[1]));
-    best_birds.push_back(best_birds[3] + (best_birds[0] - best_birds[1]));
-    best_birds.push_back(best_birds[0] + (best_birds[1] - best_birds[2]));
-    best_birds.push_back(best_birds[3] + (best_birds[1] - best_birds[2]));
-    best_birds.push_back(best_birds[0] + (best_birds[2] - best_birds[3]));
-    best_birds.push_back(best_birds[2] + (best_birds[3] - best_birds[0]));
+    best_birds.push_back(crossing(best_birds[2], best_birds[0], best_birds[1]).mutation(best_birds[3]));
+    best_birds.push_back(crossing(best_birds[3], best_birds[0], best_birds[1]).mutation(best_birds[2]));
+    best_birds.push_back(crossing(best_birds[0], best_birds[1], best_birds[2]).mutation(best_birds[0]));
+    best_birds.push_back(crossing(best_birds[3], best_birds[1], best_birds[2]).mutation(best_birds[0]));
+    best_birds.push_back(crossing(best_birds[0], best_birds[2], best_birds[3]).mutation(best_birds[1]));
+    best_birds.push_back(crossing(best_birds[2], best_birds[3], best_birds[0]).mutation(best_birds[1]));
     
     for(auto& it : best_birds)
         birds.push_back(it);
-    std::cout << "size = " << birds.size() << std::endl;
 }
 
 void restart_game(std::list<Bird>& birds)
@@ -640,9 +672,74 @@ void restart_game(std::list<Bird>& birds)
         bird.set_position(sf::Vector2f(SIZE_X / 2, SIZE_Y / 2));
 }
 
+void GamePlay(sf::RenderWindow& window, std::list<Bird>& birds, sf::Clock& clock, bool& blocked)
+{
+    if(birds.empty())
+        DrawMenu(window);
+
+    sf::Event event;
+    while (window.pollEvent(event))
+	{
+		switch (event.type) {
+		    
+            case sf::Event::Closed:
+				window.close();
+				break;
+			
+            case sf::Event::KeyPressed:
+                if(event.key.code == sf::Keyboard::Space)
+				{
+					set_flags_birds(birds, 1);
+					clock.restart();
+					fly_birds(birds);
+                    blocked = true;
+				}
+                break;
+			
+            case sf::Event::KeyReleased:
+				if (event.key.code == sf::Keyboard::Space) set_flags_birds(birds, 0);
+				if (event.key.code == sf::Keyboard::M)
+				{
+					
+					DrawMenu(window);
+					clock.restart();
+				}
+				break;
+			
+            default:
+				break;
+		}
+	}
+}
+
+void Learning(std::list<Bird>& birds, std::vector<Bird>& best_birds, std::vector<Tree>& trees, 
+              std::vector<Object>& points, sf::Clock clock_game, sf::Time time_game)
+{
+    if(static_cast<int>(time_game.asSeconds()) % 2 == 0)
+    {
+        distance_to_gap_birds(birds, points.back());
+        predict(birds);
+        self_fly_birds(birds);
+            
+    }
+        
+    if (birds.empty())
+    {
+            new_generation(best_birds, birds);
+            restart_game(birds);
+            trees.clear();
+            points.clear();
+            best_birds.clear();
+            clock_game.restart();
+            show_weights(birds);
+    }
+}
+
 bool StartGame() // just reset main() to this func
 {
 	int iter = 0;
+    int draw_menu = 0;
+    bool blocked = false;
 	sf::RenderWindow window(sf::VideoMode(SIZE_X, SIZE_Y), "My window");
 	sf::Texture texture_bird;
 	std::vector<sf::Texture> barriers_textures;
@@ -688,58 +785,13 @@ bool StartGame() // just reset main() to this func
 		move_objects(trees);
         move_objects(points);
 
-        if(static_cast<int>(time_game.asSeconds()) % 2 == 0)
-        {
-            distance_to_gap_birds(birds, points.back());
-            predict(birds);
-            self_fly_birds(birds);
-            
-        }
+        if(!blocked)
+            Learning(birds, best_birds, trees, points, clock_game, time_game);
+        GamePlay(window, birds, clock, blocked);
         
-        if (birds.empty())
-        {
-            new_generation(best_birds, birds);
-            restart_game(birds);
-            trees.clear();
-            points.clear();
-            best_birds.clear();
-            clock_game.restart();
-            show_weights(birds);
-            //return DrawMenu(window); 
-        }
-        
-		while (window.pollEvent(event))
-		{
-			switch (event.type) {
-			case sf::Event::Closed:
-				window.close();
-				break;
-			case sf::Event::KeyPressed:
-
-				if (event.key.code == sf::Keyboard::Space) //&& !bird->flag && (bird->get_velocity().y)>-MAX_VEL)
-				{
-					set_flags_birds(birds, 1);
-					clock.restart();
-					fly_birds(birds);
-				}
-
-				break;
-			case sf::Event::KeyReleased:
-				if (event.key.code == sf::Keyboard::Space) set_flags_birds(birds, 0);
-				if (event.key.code == sf::Keyboard::M)
-				{
-					
-					DrawMenu(window);
-					clock.restart();
-				}
-				break;
-			default:
-				break;
-			}
-		}
         distance_birds(birds, time_game);
 		delete_objects(trees, 0);
-        delete_objects(points, 548);
+        delete_objects(points, 500);
         check_collisions(birds, points.back());
         delete_birds(birds, best_birds);
 		window.setView(view2);
@@ -761,34 +813,4 @@ int main()
 	GameRunning();
 	return 0;
 }
-/*
-differential evolution
-void Bird::distance(sf::Time time)
-{
-auto t = time.asSeconds()
-passed_distance = t * speed;
-}
-bool compare(const Bird& bird_1, const Bird& bird_2)
-{
-return bird_1.distance() > bird_2.distance();
-}
-std::vector<Bird> generation()
-{
-// Ãåíåðèðóåì íîâóþ ïîïóëÿöèþ;
-};
-std::vector<Bird> selection(const std::vector<Bird>& birds)
-{
-// Îòáèðàåì ëó÷øèå âàðèàíòû;
-std::vector<Bird> best_birds;
-std::sort(birds.begin(), birds.end(), compare);
-return best_birds;
-}
-Bird skreschevanie(three birds)
-{
-// Ðàçíîñòü îò äâóõ è äâèæåìñÿ â íàïðàâëåíèè òðåòüåé;
-}
-Bird mutation(two birds)
-{
-// Áåðåì äâå ïòèöû è ïîëó÷àåì íîâóþ
-}
-*/
+
